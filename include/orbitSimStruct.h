@@ -245,12 +245,16 @@ typedef struct {
    * @date Last Modified:  Feb 08, 2006
    */	
 typedef struct	{
-  /// radial component 
+  /// radial component
   double r;
   /// longitude or R.A. (radian)
   double lon;
   /// latitude or declination (radian)
   double lat;
+  void print()const
+  {
+    std::cout<<"r = "<<r<<"\tlatitude = "<<lat<<"\tlongitude = "<<lon<<std::endl;
+  }
 } AtPolarVect;
 
 

@@ -1331,14 +1331,10 @@ double parseAsFline(char *ln, int *mode, double *val1, double *val2){
 
 Attitude * doCmd(InitI *ini, EphemData *ephem) {
 
-
-
-  FILE *OutF = NULL;
-
   double Timespan = (ini->stop_MJD-ini->start_MJD);
   double res = ini->Resolution;
   int inum = (int)((Timespan+res/2.0)/res);
-
+  std::cout<<inum<<"\t\t"<<ephem->ent<<std::endl;
 
   losf.setMethod("doCmd");
   losf.err().precision(12);
@@ -1357,8 +1353,6 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
 
     throw std::runtime_error(oBuf.str());
   }
-
-
 
   if(match_str((const char*)  ini->TLname.c_str(), "SURVEY") == 1){
     std::string jnk = ini->TLname;
@@ -1518,6 +1512,9 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
 
   }
 
+//-------------------------------------------------------------------
+//-------------------------------------------------------------------
+
   saa( ephem, ini->saafile.c_str(), ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);
 
   if(ini->occflag == 1){
@@ -1536,6 +1533,7 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
     }
   }
 
+  FILE *OutF = NULL;
   if(!ini->OptFile.empty() ){
     if ( (OutF=fopen(ini->OptFile.c_str(),"w")) == NULL) {
       losf.err() << "Cound not open OutPut file " << ini->OptFile << "\n";
@@ -1585,7 +1583,6 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
       k++;
     } else {
       losf.out() << __FILE__ <<":" << __LINE__ << ", " << i << ") OAtt->mjd[" << i << "]=" << OAtt->mjd[i] << ", ephem->MJD[" << i << "]=" << ephem->MJD[i] << "\n";
-
     }
 
 

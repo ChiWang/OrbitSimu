@@ -113,6 +113,7 @@ extern "C" {
    * @date Last Modified:  Feb 08, 2006
    */
 void sgp4(double t, vector *pos, vector *vel, atElemTle *satdata);
+// pos: unit, radius of the earth
 
 
   /**

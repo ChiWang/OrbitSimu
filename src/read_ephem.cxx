@@ -532,7 +532,6 @@ EphemData * tlederive(FILE *ifp, double StartTime,
 
   double Timespan;
   double latt, height;
-  AtPolarVect gSatP;
   vector pos, vel;
 
   //  char *SatN  = "DAMPE";  // TLE satellite name is 5 characters
@@ -642,6 +641,7 @@ EphemData * tlederive(FILE *ifp, double StartTime,
 
   double mjd = StartTime;
   AtVect vSat, gSat;
+  AtPolarVect gSatP;
 
     EphemData *ephemeris = allocateEphem(inum);
     for(int it =0;it < inum;++it) {
@@ -651,14 +651,16 @@ EphemData * tlederive(FILE *ifp, double StartTime,
       //      mjd = do_cal2mjd(tyear,tmonth,tday,thour,tmin);
       
       /**/
-      if(pos.v[0] == 0.0 && pos.v[1] == 0.0 && pos.v[0] == 0.0)
+      if(pos.v[0] == 0.0 && pos.v[1] == 0.0 && pos.v[0] == 0.0){
 	osf.warn() << "at Sat#=" << is << "X=" << pos.v[0]* xkmper << ", Y=" << pos.v[1]* xkmper << ",Z=" << pos.v[2]* xkmper << ", the position vector is null \n";
+    std::cout << "at Sat#=" << is << "X=" << pos.v[0]* xkmper << ", Y=" << pos.v[1]* xkmper << ",Z=" << pos.v[2]* xkmper << ", the position vector is null \n"<<std::endl;
       //printf("%4d %02d %02d %02d %02d %05d %f %f %f %f\n",tz.yr, tz.mo, tz.dy, tz.hr, tz.mn, tz.sc, pos.v[0]* xkmper, pos.v[1]* xkmper, pos.v[2]* xkmper, Units); 1
 
 /*
       if(it < 0)
 	printf("%4d %02d %02d %02d %02d %05d %f %f %f %f\n",tz.yr, tz.mo, tz.dy, tz.hr, tz.mn, tz.sc, pos.v[0]* xkmper, pos.v[1]* xkmper, pos.v[2]* xkmper, Units);
 */
+    }
 
       //  break;
       
@@ -666,9 +668,10 @@ EphemData * tlederive(FILE *ifp, double StartTime,
       vSat[1] = pos.v[1] * Units * xkmper;
       vSat[2] = pos.v[2] * Units * xkmper;
       
-      atGeodetic(mjd,vSat,gSat);    // NOTE: BUG??!!  atFunction. sidereal equatorial coordinate 2 geodetic coordinate at mjd(vSat->gSat)
-      atVectToPol(gSat,&gSatP);     // NOTE: cartesian vector->polar vector
-      atEllipsoido(&gSatP,&latt,&height); // NOTE: output latitude and altitude(unit m)
+      atGeodetic(mjd,vSat,gSat);    // NOTE: atFunction. sidereal equatorial coordinate 2 geodetic coordinate at mjd(vSat->gSat)
+      atVectToPol(gSat,&gSatP);     // NOTE: cartesian vector->polar vector (gSatP in geodetic, so not need atEllipsoido !!?? TODO BUG ?)
+      atEllipsoido(&gSatP,&latt,&height); // NOTE: input in celestial coordinate? BUG? output latitude on the earth surface, and altitude from the earth surface(unit m)
+      //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<latt - gSatP.lat<<"\th = "<<height<<"\trj = "<<gSatP.r<<std::endl;
       gSatP.lat = latt;
 
       /* save our values and move on */

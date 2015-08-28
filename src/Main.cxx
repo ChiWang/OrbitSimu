@@ -163,28 +163,26 @@ int main(int argc, char** argv)
   
 
   // EPHEM DEFINTION FROM TLE
-  EphemData * ephemeris = NULL;
   FILE * ephF = NULL;
   if ((ephF=fopen(initf.EPHname.c_str(),"r")) == NULL){
     std::cout <<"Could not open Ephemeredis file" << std::endl;
     return -1;
   }
-  ephemeris = tlederive(ephF, initf.start_MJD,initf.stop_MJD , initf.Units, initf.Resolution,initf.SATname );       // NOTE: important! src/read_ephem
+  EphemData *ephemeris = tlederive(ephF, initf.start_MJD,initf.stop_MJD , initf.Units, initf.Resolution,initf.SATname );       // NOTE: important! src/read_ephem
   fclose(ephF);
-  std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tstop mjd = "<<initf.stop_MJD<<"\tstart mjd = "<<initf.start_MJD<<std::endl;
+
   if (ephemeris == NULL){
     std::cout << "\nPossibly something went wrong while reading/generating ephemeris.\nThe Ephemeris structure is still \"NULL\"\n\n" << std::endl;
     return -1;
   }
   // just for test
+  std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tstop mjd = "<<initf.stop_MJD<<"\tstart mjd = "<<initf.start_MJD<<std::endl;
   std::cout << "From Ephem file, start mjd = " << ephemeris->MJD[0] <<  std::endl;
 
   // ATTITUDE DEFINITION
  
   //Make an empty Attitude structure Oat. 
-  Attitude *Oat = NULL;
-
-  Oat = doCmd(&initf, ephemeris);       // NOTE:  important!!
+  Attitude *Oat = doCmd(&initf, ephemeris);       // NOTE:  important!! OrbSim.h
 
   // Restore stop_MJD to its correct, but smaller value
   //initf.stop_MJD=initf.stop_MJD-stop_buffer;
