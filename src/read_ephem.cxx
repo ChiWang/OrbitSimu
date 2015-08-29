@@ -529,54 +529,35 @@ EphemData * xyzll_eph(FILE *ifp, double StartTime, double EndTime,
 EphemData * tlederive(FILE *ifp, double StartTime,
 		      double EndTime, double Units, double Resolution, std::string SSatN) {
 
-
-  double Timespan;
-  double latt, height;
-  vector pos, vel;
+  osf.setMethod("tlederive");
 
   //  char *SatN  = "DAMPE";  // TLE satellite name is 5 characters
   //char *SatN2 = "DAMPE";  // This is the name used in NORAD file
-  char *Sout;
-  Sout = new char[SSatN.length() + 1];
+  char *Sout = new char[SSatN.length() + 1];
   //std::strcpy(Sout,SSatN.c_str());
   strcpy(Sout,SSatN.c_str());
 
   char *SatN =Sout;
   char *SatN2 = SatN;
-  int nit;
 
-  //  const int Nlines = 4000;
-  const int Nlines = 3;
-  const int bufsiz = 100;
-  char ln[Nlines][bufsiz];// = {"\0"};
-  char tec[bufsiz];
-
-  int  inum ;
-
-  atElemTle Tle;
-
-  int is = 0;
-  int il = 0;
-
-  int flgNam = 0;
-  int slen;
-
-  // Minutes in one day;
-
-
-  osf.setMethod("tlederive");
-
-  Timespan = EndTime - StartTime;
-  inum = (int)((Timespan+Resolution/2.0)/Resolution); // round up
+  double Timespan = EndTime - StartTime;
+  int inum = (int)((Timespan+Resolution/2.0)/Resolution); // round up
   inum++;   // include the end point in the count  
 
   osf.info(2) << "Ephemeris will contain inum=" << inum << " points\n";
   std::cout << "Ephemeris will contain inum=" << inum << " points\n" << std::endl;
 
-  slen = strlen(SatN);
+  //  const int Nlines = 4000;
+  const int Nlines = 3;
+  const int bufsiz = 100;
+  char ln[Nlines][bufsiz];// = {"\0"};
+  int slen = strlen(SatN);
+  char tec[bufsiz];
+  int is = 0;       // NOTE: why need me?
+  int il = 0;
+  int flgNam = 0;
 
   while (fgets(tec,bufsiz,ifp)) {
-
     if(strncmp(SatN, tec, slen) ==0){
       strcpy(ln[il++],tec);
       fgets(tec,bufsiz,ifp);
@@ -597,7 +578,6 @@ EphemData * tlederive(FILE *ifp, double StartTime,
       SatN=SatN2;
       break;
     }
-
   }
 
   if(flgNam == 0){
@@ -606,10 +586,9 @@ EphemData * tlederive(FILE *ifp, double StartTime,
     return(EPHNO);
   }
 
-
-  // resol is the time resolution in minutes
-  double resol = Resolution*minInDay;
-  int istatus = readTLE(Nlines, SatN, ln, &Tle, StartTime, EndTime, resol);     // NOTE: src/functionU. read data from *tle file
+  double resol = Resolution*minInDay;   // resol is the time resolution in minutes
+  atElemTle Tle;
+  int istatus = readTLE(Nlines, SatN, ln, &Tle, StartTime, EndTime, resol);     // NOTE: src/functionU. read data from *tle file (ln)
   if(istatus !=1) return 0;
   //std::cout << "istatus " << istatus << std::endl;
   std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")resolut = "<<resol<<std::endl;  Tle.print();
@@ -638,8 +617,9 @@ EphemData * tlederive(FILE *ifp, double StartTime,
     //    correctTm(&tz);
     //    atMJulian(&tz,&mjd);
 
-
   double mjd = StartTime;
+  vector pos, vel;
+  double latt, height;
   AtVect vSat, gSat;
   AtPolarVect gSatP;
 
@@ -675,8 +655,6 @@ EphemData * tlederive(FILE *ifp, double StartTime,
       gSatP.lat = latt;
 
       /* save our values and move on */
-
-      nit = it;
 
       ephemeris->MJD[it] = mjd;
 
