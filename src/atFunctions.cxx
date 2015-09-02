@@ -346,7 +346,7 @@ atVectToPol( AtVect x, AtPolarVect *y) {
 int atNormVect(
 	   AtVect x,       /* input:  vector */	 
 	   AtVect y)       /* output: normalized vector*/ 
-{  
+{
   int    k1;
   double nrm = x[0]*x[0]+x[1]*x[1]+x[2]*x[2];
   if( nrm == 0.0 ) { 

@@ -1340,17 +1340,15 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
   losf.err().precision(12);
   losf.info().precision(12);
 
-
   //  inum++;
   losf.info(3) << "About to allocate attitude to " << inum << " elements\n";
-
+  std::cout << "About to allocate attitude to " << inum << " elements\n"<<std::endl;
 
   Attitude *OAtt = allocateAttitude(inum);
 
   if ( OAtt == (Attitude *)NULL) {
     std::ostringstream oBuf;
     oBuf << __FILE__ <<":" << __LINE__ << " ERROR: Cannot Allocate attitude data structure\nExiting..............\n\n" <<std::ends;
-
     throw std::runtime_error(oBuf.str());
   }
 
@@ -1363,24 +1361,17 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
     if(chkStr(TL) == 0){
       std::ostringstream oBuf;
       oBuf << __FILE__ <<":" << __LINE__ << " in doCmd: while I should be doing a SURVEY mode\nobservation, the offset indicated (" << TL << ") should be a number only!\nExiting now............\n\n" << std::ends;
-      
-
       throw std::runtime_error(oBuf.str());
     }
 
     sscanf(TL, "%lf", &offset);
     if(offset > 90.0 || offset < -90.0){
-
       std::ostringstream oBuf;
-      
       oBuf << __FILE__ <<":" << __LINE__ << " in doCmd: while I should be doing a SURVEY mode\nobservation, the offset indicated ( " << offset << ") is outside the limits\nEXITING NOW....................\n\n" <<std::ends;
-
       throw std::runtime_error(oBuf.str());
-      
     } else {
       losf.info(3) << "OrbSim should be doing a single cmd about survey with offset=" << offset<< "\n";
-
-
+      std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")add = "<<OAtt<<"\toffset = "<<offset<<std::endl;
       doSurvey(ini->start_MJD, ini->stop_MJD, ini->Resolution,  // NOTE: read_ephem
 	       ini->Ira, ini->Idec, offset, ephem, OAtt);
     }
@@ -1497,35 +1488,27 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
       throw std::runtime_error(eBufT.str());
     }
 
-
-
     MakeAtt2(ini->start_MJD, ini->stop_MJD, ini->Ira, ini->Idec, offset, ra, dec, 
 	     mode, ini->Resolution, ephem, lpos, OAtt, ini->start_MJD);
-
-
   }else {
     
     std::ostringstream eBuf;
     eBuf << "\n"<<__FILE__ << ":" << __LINE__ << " ERROR: doCmd SINGLE command " << ini->TLname << " is unknown!\nExiting now........................\n\n" << std::ends;
 
     throw std::runtime_error(eBuf.str());
-
   }
 
 //-------------------------------------------------------------------
 //-------------------------------------------------------------------
 
-  saa( ephem, ini->saafile.c_str(), ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);
+  saa( ephem, ini->saafile.c_str(), ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);  //NOTE: read_ephem
 
   if(ini->occflag == 1){
     // Getting the occultation
-
     occult ( ephem, ini->start_MJD, ini->stop_MJD, ini->Resolution,
 	     OAtt, ini->EAA, ini->ELT_OFF_START, ini->ELT_OFF_STOP);
     doLimbTrace(ephem, ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);
-  
     int rechk = 0;
-
     if(rechk){
       occult ( ephem, ini->start_MJD, ini->stop_MJD, ini->Resolution,
 	       OAtt, ini->EAA, ini->ELT_OFF_START, ini->ELT_OFF_STOP);
@@ -1540,7 +1523,6 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
     }  
     fprintf(OutF, "     MJD          UTC            SAT_RA       SAT_DEC       X_RA       X_DEC       Y_RA       Y_DEC       Z_RA       Z_DEC       IN_SAA\n");
   }
-
 
   OAtt->ent= inum;
   int i;

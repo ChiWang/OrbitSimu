@@ -540,8 +540,7 @@ EphemData * tlederive(FILE *ifp, double StartTime,
   char *SatN =Sout;
   char *SatN2 = SatN;
 
-  double Timespan = EndTime - StartTime;
-  int inum = (int)((Timespan+Resolution/2.0)/Resolution); // round up
+  int inum = (int)((EndTime-StartTime+Resolution/2.0)/Resolution); // round up
   inum++;   // include the end point in the count  
 
   osf.info(2) << "Ephemeris will contain inum=" << inum << " points\n";
@@ -623,10 +622,12 @@ EphemData * tlederive(FILE *ifp, double StartTime,
   AtVect vSat, gSat;
   AtPolarVect gSatP;
 
+  // NOTE: important!! update orbit position(EC sys) and latitude longitude and altitude (geodetic coordinate)
     EphemData *ephemeris = allocateEphem(inum);
+    std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
     for(int it =0;it < inum;++it) {
       double tsince = tdif+it * resol;
-      sgp4(tsince, &pos, &vel, &Tle);   //NOTE: input: tsince(time elapsed since the TLE epoch) and atElemTle(Tle parameters, NORAD two-lines). output: update positon and velocity in the ECI system.  from functions.h
+      sgp4(tsince, &pos, &vel, &Tle);   //NOTE: important!! input: tsince(time elapsed since the TLE epoch) and atElemTle(Tle parameters, NORAD two-lines). output: update positon and velocity in the ECI system.  from functions.h
       /* do appropriate conversion to make our values */
       //      mjd = do_cal2mjd(tyear,tmonth,tday,thour,tmin);
       
@@ -643,15 +644,22 @@ EphemData * tlederive(FILE *ifp, double StartTime,
     }
 
       //  break;
-      
+
       vSat[0] = pos.v[0] * Units * xkmper;
       vSat[1] = pos.v[1] * Units * xkmper;
       vSat[2] = pos.v[2] * Units * xkmper;
+//NOTE: important! in MakeSurvey()::vNVels is the same as xxN at here. What's more, the first and last points of vNVels are wrong!
+//      AtVect xxx, xxN;
+//      xxx[0] = vel.v[0];  // NOTE: Why not use the velocity of satellite from here? MakeSurvey update vNVels by 2 points of vSat...
+//      xxx[1] = vel.v[1];
+//      xxx[2] = vel.v[2];
+//      atNormVect(xxx,xxN);
+//std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tNEVT"<<it<<"\tST"<<tsince<<"\t"<<xxN[0]<<"\t"<<xxN[1]<<"\t"<<xxN[2]<<std::endl;
       
       atGeodetic(mjd,vSat,gSat);    // NOTE: atFunction. sidereal equatorial coordinate 2 geodetic coordinate at mjd(vSat->gSat)
-      atVectToPol(gSat,&gSatP);     // NOTE: cartesian vector->polar vector (gSatP in geodetic, so not need atEllipsoido !!?? TODO BUG ?)
-      atEllipsoido(&gSatP,&latt,&height); // NOTE: input in celestial coordinate? BUG? output latitude on the earth surface, and altitude from the earth surface(unit m)
-      //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<latt - gSatP.lat<<"\th = "<<height<<"\trj = "<<gSatP.r<<std::endl;
+      atVectToPol(gSat,&gSatP);     // NOTE: only cartesian vector->polar vector (but geodetic is a ellipsoid!!, so need to call the next line to corret lattitude!)
+      atEllipsoido(&gSatP,&latt,&height); // NOTE: latitude on ellipsoid surface(the earth), and altitude from the earth surface(unit m)
+      //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<latt - gSatP.lat<<"\th = "<<height-gSatP.r<<std::endl;
       gSatP.lat = latt;
 
       /* save our values and move on */
@@ -668,6 +676,7 @@ EphemData * tlederive(FILE *ifp, double StartTime,
 
       mjd += resol/minInDay;
     }
+    std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\n\n"<<std::endl;
 
     /* ephemeris->Period = Period; */
     ephemeris->SemiMajorAxis = 0;
@@ -948,31 +957,10 @@ void MakeAtt2(double start, double mjde, double pra, double pdec,
 
 void MakeSurvey(double start, double end, double res, double offset, 
 		EphemData *ephem, Attitude *OAtt, double *rd, int mode, double TS) {
+   // @param mode - observation mode, 1 for Fixed Survey, 2 for Pointed observation
+   // @param mode - if only RA and DEC at time t, the mode should be 0, 1 otherwise
 
-
-  AtVect vSat, vbSat, vaSat, vVelS;
-  AtVect vNSat, vNbSat, vNaSat, vNVelS;
-  double mjd, amjd, bmjd;
-
-  double RaDe[11];
-  int i, inum, k;
-  double sra, sdec, zra, zdec, yra, ydec, xra, xdec, sunx, suny, sunz, suna, sunxy;
-
-  int j = 0;
-
-
-  int ii, is, jj, ij;
-  const int SunAvPts = 10;
-  int RemSunPts = 0;
-  int SSunPts, TSunPts;
-  double TOfs = 18.25*DEG2RAD;
-  double IncTOfs;
-  double SunSurvOfs = 0.0;
-  int flgDir = 0;
-  double dk;
-
-
-  inum = (int) ((end-start+res/2.)/res);
+  int  inum = (int) ((end-start+res/2.)/res);
   inum++;
 
 /*
@@ -984,16 +972,14 @@ void MakeSurvey(double start, double end, double res, double offset,
   }
 */
 
-//offset = -offset*DEG2RAD;
   offset =  offset*DEG2RAD;
 
-  j = 0;
-  
-  mjd = ephem->MJD[j];
+  int j = 0;
+  double mjd = ephem->MJD[j];
 
   //  printf ("4) i=45 ==> mjd=%f, i=46 ==> mjd=%f\n", OAtt->mjd[45], OAtt->mjd[46]);
 
-  if(fabs (mjd- start) > 1.0E-6  ) {
+  if(fabs (mjd- start) > 1.0E-6  ) {    // NOTE: find the first ephem point, must bigger than start_MJD in *.ini
     while((mjd < start) && (j < ephem->ent)){
       if(fabs(mjd-start) < 1E-6 ){
 	break;
@@ -1002,22 +988,34 @@ void MakeSurvey(double start, double end, double res, double offset,
     }
   }
 
+  int k =(int) (((start-TS)+res/2.0)/res);
 
-  k =(int) (((start-TS)+res/2.0)/res);
-
-
-  for (i=j;i<inum+j;++i) {
+  double amjd, bmjd;
+  AtVect vSat, vaSat,vbSat, vVelS;  // NOTE: position vector of satellite
+  AtVect vNSat, vNbSat, vNaSat, vNVelS; // NOTE: normallized position vector
+  AtVect vVels, vNVels; // NOTE: velocity of satellite
+  double RaDe[11];  // NOTE: imporant buffer
+  int ii;
+  double sra, sdec, zra, zdec, yra, ydec, xra, xdec, sunx, suny, sunz, suna, sunxy;
+  const int SunAvPts = 10;
+  double TOfs = 18.25*DEG2RAD;
+  int SSunPts, TSunPts;
+  //double SunSurvOfs = 0.0;
+  for (int i=j;i<inum+j;++i) {
     /* Get the satellite vector in ECI */
-
-
+    {
     mjd = ephem->MJD[i];    
-    vSat[0] = ephem->X[i]; 
+    vSat[0] = ephem->X[i];
     vSat[1] = ephem->Y[i];
     vSat[2] = ephem->Z[i]; 
 
+        /* NOTE: Get normalized velocity of satellite... vNVels. by 2 points and time resolution
+         * the vNVels is almost the same  as velocity calculated by sgp4(time_since,position, velocity, tle_file)
+         * what's more! the way which used at here, is NOT correct for the fisrt and last points
+         */
     if(i+1 >= ephem->ent ) { // Mind the boundaries 
       amjd = mjd + res;
-      vaSat[0] = InterPVect(mjd, amjd, vSat[0], vbSat[0], amjd);
+      vaSat[0] = InterPVect(mjd, amjd, vSat[0], vbSat[0], amjd);    // 
       vaSat[1] = InterPVect(mjd, amjd, vSat[1], vbSat[1], amjd);
       vaSat[2] = InterPVect(mjd, amjd, vSat[2], vbSat[2], amjd);
     } else {
@@ -1026,54 +1024,51 @@ void MakeSurvey(double start, double end, double res, double offset,
       vaSat[1] = ephem->Y[i+1];
       vaSat[2] = ephem->Z[i+1];
     }
-
     if(i == 0){  // if i-1 < 0
       bmjd     = mjd - res;
       vbSat[0] = InterPVect(mjd, amjd, vSat[0], vaSat[0], bmjd);
       vbSat[1] = InterPVect(mjd, amjd, vSat[1], vaSat[1], bmjd);
       vbSat[2] = InterPVect(mjd, amjd, vSat[2], vaSat[2], bmjd);
-
     } else {
       bmjd     = ephem->MJD[i-1];
       vbSat[0] = ephem->X[i-1];
       vbSat[1] = ephem->Y[i-1];
       vbSat[2] = ephem->Z[i-1];
-
     }
-
 
     atNormVect(vSat, vNSat);  /* normalize vector vSat */
     atNormVect(vbSat, vNbSat);  /* normalize vector vbSat */
     atNormVect(vaSat, vNaSat);  /* normalize vector vaSat */
 
-    vVelS[0] = (vNaSat[0] - vNbSat[0])/(2.0*res);
+    vVelS[0] = (vNaSat[0] - vNbSat[0])/(2.0*res);   // NOTE: velocity
     vVelS[1] = (vNaSat[1] - vNbSat[1])/(2.0*res);
     vVelS[2] = (vNaSat[2] - vNbSat[2])/(2.0*res);
     atNormVect(vVelS, vNVelS);  /* normalize vector vaSat */
+//std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t\t NEVT"<<i<<"\t"<<vNVelS[0]<<"\t"<<vNVelS[1]<<"\t"<<vNVelS[2]<<std::endl;
+    }
+    GetPos(mjd, vSat, vNVelS, offset, RaDe);    // NOTE:important!! all information of spacecraft in RaDe.  include/functions
 
-
-
-    GetPos(mjd, vSat, vNVelS, offset, RaDe);
-
-
+    {   //NOTE: update one point
     sra   = RaDe[0];
     sdec  = RaDe[1];
+    //AtPolarVect ww;   // NOTE: orbit postion in EC system
+    //atVectToPol(vSat,&ww);
+    //std::cout<<"==>they are the same"<<ww.lat*RAD2DEG<<"\t"<<ww.lon*RAD2DEG<<"\t\t"<<sra<<"\t"<<sdec<<std::endl;
     zra   = RaDe[2];
     zdec  = RaDe[3];
     yra   = RaDe[4];
     ydec  = RaDe[5]; 
     xra   = RaDe[6];
     xdec  = RaDe[7];
-    sunx  = RaDe[8]; 
-    suny  = RaDe[9]; 
-    sunz  = RaDe[10]; 
+    sunx  = RaDe[8];    //NOTE: normalized vector in spacecraft frame
+    suny  = RaDe[9];
+    sunz  = RaDe[10];
 
-    if(mode == 0){
+    if(mode == 0){  // NOTE: just output z-axis pointing(where the spacecraft is pointing). Mode 0 will be used under what situation?
       rd[0] = zra;
       rd[1] = zdec;
       return;
     }
-
 
     OAtt->mjd[k]    = mjd;
     OAtt->SatRA[k]  = sra;
@@ -1084,16 +1079,13 @@ void MakeSurvey(double start, double end, double res, double offset,
     OAtt->Ydec[k]   = ydec;
     OAtt->Zra[k]    = zra;
     OAtt->Zdec[k]   = zdec;
-
-
-
+    }
     k++;
+    //std::cout<<"checkK\tDEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<k<<std::endl;
 
     if(k >=inum+j){
       break;
     }
-
-
 
 /*******************************************************************************
 
@@ -1104,6 +1096,7 @@ void MakeSurvey(double start, double end, double res, double offset,
 
 *******************************************************************************/
 
+    {   // NOTE: get the next position
     ii = i+1;
 
     if (ii >= j+inum || ii >= ephem->ent){
@@ -1137,8 +1130,6 @@ void MakeSurvey(double start, double end, double res, double offset,
       vaSat[2] = ephem->Z[ii+1];
     }
 
-
-
     atNormVect(vSat, vNSat);  /* normalize vector vSat */
     atNormVect(vbSat, vNbSat);  /* normalize vector vbSat */
     atNormVect(vaSat, vNaSat);  /* normalize vector vaSat */
@@ -1147,36 +1138,41 @@ void MakeSurvey(double start, double end, double res, double offset,
     vVelS[1] = (vNaSat[1] - vNbSat[1])/(2.0*res);
     vVelS[2] = (vNaSat[2] - vNbSat[2])/(2.0*res);
     atNormVect(vVelS, vNVelS);  /* normalize vector vaSat */
-
+  }
 
     GetPos(mjd, vSat, vNVelS, offset, RaDe);
- 
 
-    sra   = RaDe[0];
-    sdec  = RaDe[1];
-    zra   = RaDe[2];
-    zdec  = RaDe[3];
-    yra   = RaDe[4];
-    ydec  = RaDe[5]; 
-    xra   = RaDe[6];
-    xdec  = RaDe[7];
+    //sra   = RaDe[0];  NOTE: not need, since just care sun angles at here
+    //sdec  = RaDe[1];
+    //zra   = RaDe[2];
+    //zdec  = RaDe[3];
+    //yra   = RaDe[4];
+    //ydec  = RaDe[5]; 
+    //xra   = RaDe[6];
+    //xdec  = RaDe[7];
     sunx  = RaDe[8]; 
     suny  = RaDe[9]; 
     sunz  = RaDe[10];
 
     sunxy = sqrt(sunx*sunx+suny*suny);
     suna = atan2(sunxy,sunz);
+    //AtVect xxSun; // NOTE: in ECI system, latitude
+    //xxSun[0] = sunx;
+    //xxSun[1] = suny;
+    //xxSun[2] = sunz;
+    //AtPolarVect xxSunP;
+    //atVectToPol(xxSun,&xxSunP);
     suna = suna*RAD2DEG;
+//std::cout<<"SunAn\tDEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<k<<"\t"<<fabs(suna)<<std::endl;
+//std::cout<<"\t\t"<<(3.1415926/2 - xxSunP.lat) * RAD2DEG<<std::endl;
 
-
-    if((fabs(suna) <= 10.0 || fabs(suna) >= 170.0) && (ii+1 < j+inum)){
-    //if(fabs(suna) <= 0.0){
-      is = 0;
-      ii++;
-      while((fabs(suna) <= 10.0 || fabs(suna) >= 170.0) && (ii < ephem->ent)){ 
+    if((fabs(suna) <= 10.0 || fabs(suna) >= 170.0) && (ii+1 < j+inum)){ // NOTE: if pointing to sun, what will happen?
+      int is = 0;   // NOTE: how many steps pointing sun
+      ii++;     // NOTE: the next next one...
+      while((fabs(suna) <= 10.0 || fabs(suna) >= 170.0) && (ii < ephem->ent)){
 	is++;
 
-
+    {
 	mjd = ephem->MJD[ii];    
 	vSat[0] = ephem->X[ii]; 
 	vSat[1] = ephem->Y[ii];
@@ -1199,8 +1195,6 @@ void MakeSurvey(double start, double end, double res, double offset,
 	  vaSat[2] = ephem->Z[ii+1];
 	}
 
-
-
 	atNormVect(vSat, vNSat);  /* normalize vector vSat */
 	atNormVect(vbSat, vNbSat);  /* normalize vector vbSat */
 	atNormVect(vaSat, vNaSat);  /* normalize vector vaSat */
@@ -1209,17 +1203,17 @@ void MakeSurvey(double start, double end, double res, double offset,
 	vVelS[1] = (vNaSat[1] - vNbSat[1])/(2.0*res);
 	vVelS[2] = (vNaSat[2] - vNbSat[2])/(2.0*res);
 	atNormVect(vVelS, vNVelS);  /* normalize vector vaSat */
-
+      }
 	GetPos(mjd, vSat, vNVelS, offset, RaDe);
 
-	sra   = RaDe[0];
-	sdec  = RaDe[1];
-	zra   = RaDe[2];
-	zdec  = RaDe[3];
-	yra   = RaDe[4];
-	ydec  = RaDe[5]; 
-	xra   = RaDe[6];
-	xdec  = RaDe[7];
+    //sra   = RaDe[0];  NOTE: not need, since just care sun angles at here
+	//sdec  = RaDe[1];
+	//zra   = RaDe[2];
+	//zdec  = RaDe[3];
+	//yra   = RaDe[4];
+	//ydec  = RaDe[5]; 
+	//xra   = RaDe[6];
+	//xdec  = RaDe[7];
 	sunx  = RaDe[8]; 
 	suny  = RaDe[9]; 
 	sunz  = RaDe[10];
@@ -1227,17 +1221,22 @@ void MakeSurvey(double start, double end, double res, double offset,
 	sunxy = sqrt(sunx*sunx+suny*suny);
 	suna = atan2(sunxy,sunz);
 	suna = suna*RAD2DEG; 
-	ii++;     
+	ii++;   // NOTE: until it's not pointing sun
       }
 
-      if(is >= SunAvPts){
-	SSunPts = i + 1;
-	TSunPts = is;
-      }else if(is < SunAvPts){
-	RemSunPts = SunAvPts - is;
-	SSunPts = i + 1 - (int)(((float)RemSunPts/2.0+0.05));
-	TSunPts = SunAvPts;
+    if(is >= SunAvPts){
+	  SSunPts = i + 1;
+	  TSunPts = is;
+    }else{
+      //}else if(is < SunAvPts){
+	  int RemSunPts = SunAvPts - is;
+	  SSunPts = i + 1 - (int)(((float)RemSunPts/2.0+0.05));
+	  TSunPts = SunAvPts;
+      if(SSunPts <= 0){
+	    SSunPts = 1;
+	    TSunPts++;
       }
+    }
 
 /*******************************************************************************
 
@@ -1247,14 +1246,15 @@ void MakeSurvey(double start, double end, double res, double offset,
 
 *******************************************************************************/
 
+      int flgDir = 0;
+      double SunSurvOfs = offset+TOfs; //NOTE: add a certain value...?
+    {// NOTE: choose flagDir  skip to the middle
+      ii = i+is/2;  // NOTE: why /2 ??   middle from i to (i+is)
+      {
+      if(ii <= 0)   ii = 1;
 
-      ii = i+is/2;
-
-      if(ii <= 0)
-	ii = 1;
-
-      mjd = ephem->MJD[ii];    
-      vSat[0] = ephem->X[ii]; 
+      mjd = ephem->MJD[ii];
+      vSat[0] = ephem->X[ii];
       vSat[1] = ephem->Y[ii];
       vSat[2] = ephem->Z[ii];
   
@@ -1275,9 +1275,6 @@ void MakeSurvey(double start, double end, double res, double offset,
 	vaSat[2] = ephem->Z[ii+1];
       }
 
-
-
-
       atNormVect(vSat, vNSat);  /* normalize vector vSat */
       atNormVect(vbSat, vNbSat);  /* normalize vector vbSat */
       atNormVect(vaSat, vNaSat);  /* normalize vector vaSat */
@@ -1286,57 +1283,44 @@ void MakeSurvey(double start, double end, double res, double offset,
       vVelS[1] = (vNaSat[1] - vNbSat[1])/(2.0*res);
       vVelS[2] = (vNaSat[2] - vNbSat[2])/(2.0*res);
       atNormVect(vVelS, vNVelS);  /* normalize vector vaSat */
-
-
-      SunSurvOfs = offset+TOfs;
+    }
       GetPos(mjd, vSat, vNVelS, SunSurvOfs, RaDe);
-
-      sra   = RaDe[0];
-      sdec  = RaDe[1];
-      zra   = RaDe[2];
-      zdec  = RaDe[3];
-      yra   = RaDe[4];
-      ydec  = RaDe[5]; 
-      xra   = RaDe[6];
-      xdec  = RaDe[7];
+      //sra   = RaDe[0];  NOTE: not need, since just care sun angles at here
+      //sdec  = RaDe[1];
+      //zra   = RaDe[2];
+      //zdec  = RaDe[3];
+      //yra   = RaDe[4];
+      //ydec  = RaDe[5];
+      //xra   = RaDe[6];
+      //xdec  = RaDe[7];
       sunx  = RaDe[8]; 
-      suny  = RaDe[9]; 
+      suny  = RaDe[9];
       sunz  = RaDe[10];
-
       sunxy = sqrt(sunx*sunx+suny*suny);
       suna = atan2(sunxy,sunz);
       suna = suna*RAD2DEG;
-
-
-      if(fabs(suna) <= 90.0){
-	flgDir = 0;
-      }else{
-	flgDir = 1;
+      if(fabs(suna) > 90.0){
+	    flgDir = 1;
       }
+    }
 
-      IncTOfs = TOfs / TSunPts;
-      dk = .50;
-      SunSurvOfs = offset;
-
-      if(SSunPts <= 0){
-	SSunPts = 1;
-	TSunPts++;
-      }
-      ij = 0;
+      //IncTOfs = TOfs / TSunPts; //NOTE: not need this line
+      double dk = 0.50;
+      //SunSurvOfs = offset;    //NOTE: useless at here
+      int ij = 0;   //NOTE: counts of intime events
       SSunPts--;
-      k = SSunPts;
+      k = SSunPts;      // NOTE: re-calculation from SartSunPts
+      //TOfs = 18.5*DEG2RAD;    NOTE: 18.5 to 18.25 ???
 
-      TOfs = 18.5*DEG2RAD;
-
-      for(jj=SSunPts; jj<SSunPts+TSunPts; jj++){
+//NOTE: cal. all sun pointing data
+      for(int jj=SSunPts; jj<SSunPts+TSunPts; jj++){
 
 	if(jj > inum+j ){
 	  break;
 	}
 
-	IncTOfs = acos(((double)TSunPts/2.0-dk)/((double)TSunPts/2.0));
+	double IncTOfs = acos(((double)TSunPts/2.0-dk)/((double)TSunPts/2.0));
 	IncTOfs = (jj-SSunPts)*180.0*DEG2RAD/TSunPts;
-
 /*
    Now based on Direction above found, we will decide
    wether we need to subtract or add to the Survey
@@ -1347,9 +1331,8 @@ void MakeSurvey(double start, double end, double res, double offset,
 	}else{
 	  SunSurvOfs = offset+TOfs*sin(IncTOfs)*sqrt(fabs(sin(IncTOfs)));
 	}
-
-
-	mjd = ephem->MJD[jj];    
+    {
+	mjd = ephem->MJD[jj];
 	vSat[0] = ephem->X[jj]; 
 	vSat[1] = ephem->Y[jj];
 	vSat[2] = ephem->Z[jj];
@@ -1358,7 +1341,6 @@ void MakeSurvey(double start, double end, double res, double offset,
 	vbSat[0] = ephem->X[jj-1];
 	vbSat[1] = ephem->Y[jj-1];
 	vbSat[2] = ephem->Z[jj-1];
-
 	if(jj+1 >= ephem->ent ) { // Mind the boundaries 
 	  amjd = mjd + res;
 	  vaSat[0] = InterPVect(mjd, amjd, vSat[0], vbSat[0], amjd);
@@ -1370,8 +1352,6 @@ void MakeSurvey(double start, double end, double res, double offset,
 	  vaSat[1] = ephem->Y[jj+1];
 	  vaSat[2] = ephem->Z[jj+1];
 	}
-
-
 	atNormVect(vSat, vNSat); 
 	atNormVect(vbSat, vNbSat); 
 	atNormVect(vaSat, vNaSat); 
@@ -1380,29 +1360,28 @@ void MakeSurvey(double start, double end, double res, double offset,
 	vVelS[1] = (vNaSat[1] - vNbSat[1])/(2.0*res);
 	vVelS[2] = (vNaSat[2] - vNbSat[2])/(2.0*res);
 	atNormVect(vVelS, vNVelS); 
-
-	GetPos(mjd, vSat, vNVelS, offset, RaDe);
-	//	printf("==>%4d) jj=%d mjd=%f, zdecO=%f, offset=%f, ", k, jj, mjd, RaDe[3], RAD2DEG*offset);
+    }
+	//GetPos(mjd, vSat, vNVelS, offset, RaDe);    //NOTE: not need this line
+		//printf("XXX==>%4d) jj=%d mjd=%f, zdecO=%f, offset=%f, ", k, jj, mjd, RaDe[3], RAD2DEG*offset);
 	GetPos(mjd, vSat, vNVelS, SunSurvOfs, RaDe);
-	//	printf("zdecS=%f, SunOfst=%f IncTOfs=%f, npts=%d, suna=%f\n", RaDe[3], RAD2DEG*SunSurvOfs, IncTOfs*RAD2DEG, SSunPts+TSunPts, suna);
+		//printf("zdecS=%f, SunOfst=%f IncTOfs=%f, npts=%d, suna=%f\n", RaDe[3], RAD2DEG*SunSurvOfs, IncTOfs*RAD2DEG, SSunPts+TSunPts, suna);
  
 	sra   = RaDe[0];
 	sdec  = RaDe[1];
 	zra   = RaDe[2];
 	zdec  = RaDe[3];
 	yra   = RaDe[4];
-	ydec  = RaDe[5]; 
+	ydec  = RaDe[5];
 	xra   = RaDe[6];
 	xdec  = RaDe[7];
-	sunx  = RaDe[8]; 
-	suny  = RaDe[9]; 
+	sunx  = RaDe[8];
+	suny  = RaDe[9];
 	sunz  = RaDe[10];
 
 	sunxy = sqrt(sunx*sunx+suny*suny);
 	suna = atan2(sunxy,sunz);
 	suna = suna*RAD2DEG;
 	//	printf("%5d) Newly Calculated Sun angle with z-axis = %13.9f\n", jj, suna);
-
 
 	OAtt->mjd[k]    = mjd;
 	OAtt->SatRA[k]  = sra;
@@ -1414,33 +1393,23 @@ void MakeSurvey(double start, double end, double res, double offset,
 	OAtt->Zra[k]    = zra;
 	OAtt->Zdec[k]   = zdec;
 
-
 	k++;
 	if(k >=inum+j){
 	  break;
 	}
 
-
 	dk += 1.0;
 	ij++;
-
-      }
+    }
       i += ij+2;
       if(i > ephem->ent){
-	i = ephem->ent-1;
+	    i = ephem->ent-1;
       }
 
       while( OAtt->mjd[i] <= 0.1){
-	i--;
-// 	if(i > 0 && i < 100){
-// 	  printf("%s:%d, %5d) mjd=%f\n", __FILE__, __LINE__, i, OAtt->mjd[i]);
-// 	}
+	    i--;
       }
-
-	
     } // end if fabs(suna) <= 10.0 || fabs(suna) >= 170.
-
-
   }
 
   osf.info(5) << "Leaving MakeSurvey\n";
@@ -1534,7 +1503,7 @@ void DoSlew(double start, double mjds, double pra, double pdec, double ra,
   double raS = gSatP.lon;
   double decS = 90.0*DEG2RAD-gSatP.lat;
   
-  double duratS =  GLAST_slew_estimate(raS, decS, pra*DEG2RAD,
+  double duratS =  GLAST_slew_estimate(raS, decS, pra*DEG2RAD,  // NOTE: include/GLAST_slew_estimate....!
 				       pdec*DEG2RAD, ra*DEG2RAD, dec*DEG2RAD);
 
 /*
@@ -1965,7 +1934,6 @@ void saa( EphemData *EphemPtr, const char *filename, double StartTime,
   }
 
   return;
-
 }
 
 
@@ -1978,15 +1946,13 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 	      double offset, EphemData *ephem, Attitude *OAtt){
 
 
-
-  double RaDec[2];
+  osf.setMethod("doSurvey");
   double Timespan = end - start;
   int inum = (int)((Timespan+res/2.0)/res);
   inum++;   /* Delta plus 1 to get the end point */
 
-
-
-  Attitude *OAtt1 = allocateAttitude(inum);
+  double RaDec[2];  // NOTE: empty data, not update for mode 0
+  Attitude *OAtt1 = allocateAttitude(inum); // NOTE: another attitude object
   if ( OAtt1 == (Attitude *)NULL) {
     std::ostringstream eBufT;
     eBufT << "\n" << __FILE__ << ":" << __LINE__ << ", ERROR: Cannot Allocate attitude data structure\nExiting..............\n\n " <<std::ends;
@@ -1994,9 +1960,8 @@ void doSurvey(double start, double end, double res, double ira, double idec,
     throw std::runtime_error(eBufT.str());
   }
   OAtt1->ent = inum;
-
-
-  osf.setMethod("doSurvey");
+  MakeSurvey(start, end, res, offset, ephem, OAtt1, RaDec, 1, start);   // NOTE: get Attitude and RaDec. from read_ephem
+  osf.info(4) << __FILE__ << ":" << __LINE__ << ", called MakeSurvey with offset=" << offset << "\n\n";
 
   Attitude *OAtt2 = allocateAttitude(inum);
   if ( OAtt2 == (Attitude *)NULL) {
@@ -2006,40 +1971,26 @@ void doSurvey(double start, double end, double res, double ira, double idec,
     throw std::runtime_error(eBufT.str());
   }
   OAtt2->ent = inum;
-
-  MakeSurvey(start, end, res, offset, ephem, OAtt1, RaDec, 1, start);
-  osf.info(4) << __FILE__ << ":" << __LINE__ << ", called MakeSurvey with offset=" << offset << "\n\n";
   MakeSurvey(start, end, res, -offset, ephem, OAtt2, RaDec, 1, start);
   osf.info(4) << __FILE__ << ":" << __LINE__ << ", called MakeSurvey with offset=" << -offset << "\n\n";
 
 
-
-
   double mjds = start;
-
-
-
-
-
-  int j =  getEndPoint (start, &mjds, ira, idec, OAtt1, 0, start, res);
-
+  std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
+  int j =  getEndPoint (start, &mjds, ira, idec, OAtt1, 0, start, res); // NOTE:   read_ephem: update mjds
+  std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
   double ra  = OAtt1->Zra[j];
   double dec = OAtt1->Zdec[j];
-
-
-
   if(start < mjds) {
     DoSlew(start, mjds, ira, idec, ra, dec, res, ephem, OAtt, start);
+    std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
     osf.info(4) << __FILE__ << ":" << __LINE__ << ", called DoSlew with offset=" << offset << "\n\n";
   }
-
-
 
 
   double Timespan1 = end - mjds;
   int inum1 = (int)((Timespan1+res/2.0)/res);
   inum1++;   /* Delta plus 1 to get the end point */
-
 
   int ia = 1;
   int k;
@@ -2063,7 +2014,6 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 	  osf.info() << "i=0, OAtt->mjd[0]=" << OAtt->mjd[0] << "\ni=1, OAtt->mjd[1]=" << OAtt->mjd[1] << "\n\n";
 	}
 */
-
 
 	if(ia == 1){
 	  double mjdi = OAtt1->mjd[k];
@@ -2147,11 +2097,9 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 	  OAtt->Zdec[k]   = OAtt2->Zdec[k];
 
 	}
-	
 
       }
     } else {
-
       if(ia == 1){
 
 	OAtt->mjd[k]    = OAtt1->mjd[k];
@@ -2177,12 +2125,8 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 	OAtt->Zdec[k]   = OAtt2->Zdec[k];
 
       }
-
     }
-
-
   }
-
   osf.info(4) << "i=0, OAtt->mjd[0]=" << OAtt->mjd[0] << "\ni=1, OAtt->mjd[1]=" << OAtt->mjd[1] << "\n";
   return;
 }
@@ -2201,7 +2145,6 @@ int getEndPoint (double mjdi, double *mjds, double ira, double idec,
   int ntr = 0;
   double theta = 0.0;
   double ptheta = -999.0;
-  const double slewR = SLEW_RATE;
 
   double fra = LAtt->Zra[idx];
   double fdec = LAtt->Zdec[idx];
@@ -2209,51 +2152,37 @@ int getEndPoint (double mjdi, double *mjds, double ira, double idec,
   AtVect vSun;
   AtPolarVect gSatP;
 
-
-
   int j;
 
   osf.setMethod("getEndPoint");
 
-  while (ntr < 20){
-
+  while (ntr < 20){ //NOTE: why 20???       //many useless varibles inside...
     angularSep(ira*DEG2RAD, idec*DEG2RAD, fra*DEG2RAD, fdec*DEG2RAD, &theta);
-
     theta = theta*RAD2DEG;
-
-    
     if(theta == ptheta){
       break;
     } else {
       ptheta = theta;
     }
     
-    double slewT = theta/slewR;
+    double slewT = theta/SLEW_RATE;
     slewT = ((double) ((int)(slewT+reso/2.0)))/minInDay;
     *mjds = mjdi+slewT;
-
     j =(int) (((*mjds-start)+res/2.0)/res);
 
-
-    atSun(mjdi, vSun);
+    atSun(mjdi, vSun);  //NOTE: mjdi will not change in while...
     atVectToPol(vSun,&gSatP);
-    double raS = gSatP.lon;
+    double raS = gSatP.lon;     //NOTE: will them update by ntr??
     double decS = 90.0*DEG2RAD-gSatP.lat;
+    //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<raS<<"\t"<<decS<<std::endl;
   
-    double duratS =  GLAST_slew_estimate(raS, decS, ira*DEG2RAD,
+    double duratS =  GLAST_slew_estimate(raS, decS, ira*DEG2RAD,    //NOTE: include/GLAST_slew_estimate()
 					 idec*DEG2RAD, fra*DEG2RAD, fdec*DEG2RAD);
-
-
-
     duratS = (double)((int)(duratS/(86400.0*res)));
-
     duratS = duratS*res;
-
-
 
     *mjds = mjdi+duratS;
     j =(int) (((*mjds-start)+res/2.0)/res);    
-
 
     osf.info(4) << "idx="<<idx<<", mjds="<<*mjds<<", start="<<start<<", res="<<res<<", j="<<j<<"\n";
 
@@ -2261,12 +2190,9 @@ int getEndPoint (double mjdi, double *mjds, double ira, double idec,
     fdec = LAtt->Zdec[j];
 
     ntr++;
-    
   }
 
-
   return j;
-
 }
 
 

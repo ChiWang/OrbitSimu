@@ -180,7 +180,6 @@ int main(int argc, char** argv)
   std::cout << "From Ephem file, start mjd = " << ephemeris->MJD[0] <<  std::endl;
 
   // ATTITUDE DEFINITION
- 
   //Make an empty Attitude structure Oat. 
   Attitude *Oat = doCmd(&initf, ephemeris);       // NOTE:  important!! OrbSim.h
 
@@ -191,7 +190,6 @@ int main(int argc, char** argv)
     std::cout << "\nPossibly something went wrong while calculating the spacecraft attitude.\nThe Attitude structure is still \"NULL\"\n\n" << std::endl;
     return -1;
   }  
-
 
   // Output root file
 

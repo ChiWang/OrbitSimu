@@ -354,7 +354,7 @@ double GLAST_slew_estimate ( double ra_s, double dec_s, // sun coordinates (radi
  duration = interp_Angle2Time(y_slew_angle, xz_slew_angle, total_time, theta_y_mesh, theta_xz_mesh);
 
 #ifdef DEBUG
- printf ("Duration = %f\n", duration);
+ printf ("Duration = %f\n\n", duration);
 #endif
 
  return duration;

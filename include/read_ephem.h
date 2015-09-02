@@ -317,6 +317,7 @@ void MakeAtt2(double mjdt, double mjde, double pra, double pdec,
    */
 void MakeSurvey(double start, double end, double res, double offset, 
 		EphemData *ephem, Attitude *OAtt, double *rd, int mode, double TS);
+  // NOTE: start >= TS !
 
   /**
    * @brief Function that calculates attitude profile for

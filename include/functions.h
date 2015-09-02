@@ -104,7 +104,7 @@ extern "C" {
    *
    *
    * @param t - time elapsed since the TLE epoch
-   * @param pos - vector containing the spacecraft position in the ECI system
+   * @param pos - vector containing the spacecraft position in the ECI system   // unit radius of earth
    * @param vel - vector containing the spacecraft velocity in the ECI system
    * @param satdata - strcuture containing all parameters coming from the TLE file
    * 
@@ -667,12 +667,13 @@ void rade2xyz( double ra,  double dec, AtVect xyz);
    * @param pdec - DEC of point 1; input
    * @param ra - RA of point 2; input
    * @param dec - DEC of point 2; input
-   * @param theta - angular separation; output
+   * @param theta - angular separation; output. unit radian
    *
    * @author Giuseppe Romeo
    * @date Created:  Nov 15, 2005
    */
 void angularSep(double pra, double pdec, double ra, double dec, double *theta);
+//double angularSep(double pra, double pdec, double ra, double dec);
 
 
 

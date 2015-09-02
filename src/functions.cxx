@@ -684,7 +684,7 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
  *            RVal[1] = degrees, spacecraft declination
  *            RVal[2] = degrees, spacecraft pointing right ascension ;
  *            RVal[3] = degrees, spacecraft pointing declination
- *            RVal[4] = degrees, RA where the spacecraft y-axis is pointing
+ *            RVal[4] = degrees, RA where the spacecraft y-axis is pointing // NOTE: BUG? HOW TO define the y-axis??
  *            RVal[5] = degrees, Declination where the spacecraft y-axis is pointing
  *            RVal[6] = Sun vector, x
  *            RVal[7] = Sun vector, y
@@ -699,6 +699,7 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
   pra, pdec is where the spacecraft is pointing
   rra, rdec is where the spacecraft x-axis is pointing
   apra, apdec is where the spacecraft y-axis is pointing
+  vNSun is the normalized vector refer to satellite frame
 */
   double sxy, sra, sdec, psi, rra, rdec, rsxy, Sra, Sdec;  
   double apra, apdec, apxy, pra, pdec, pxy;
@@ -724,11 +725,11 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
   }
 
 
-  if (mjd > 1000000.0){
-
+  if(mjd > 1000000.0){
     fosf.err() << "GetPos: bad data input. returning 0 vector\n";
     int j=0;
-    for( ; j<10; j++) RVal[j] = 0.0;
+    //for( ; j<10; j++) RVal[j] = 0.0;  //NOTE: j<10 ??? RVal have 11 elements!
+    for( ; j<11; j++) RVal[j] = 0.0;
   }
 
   setUnit(UnitM);
@@ -847,11 +848,6 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
   atRotVect(TBody2Eci, vFT, vFTECI);
 
   atNormVect(vFTECI, vNFTECI);
-
-  
-
-
-
 
   /* Get current sun vector in ECI */
 
@@ -1001,19 +997,17 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
   }
   Sdec = 90.0-Sdec;
 
-
-  RVal[0]  = sra;
+  RVal[0]  = sra;   //NOTE: 
   RVal[1]  = sdec;
-  RVal[2]  = pra;
+  RVal[2]  = pra;   //NOTE: sapcecraft pointing
   RVal[3]  = pdec;
-  RVal[4]  = apra;
+  RVal[4]  = apra;  //NOTE: y-axis pointing
   RVal[5]  = apdec;
-  RVal[6]  = rra;
+  RVal[6]  = rra;   //NOTE: x-axis pointing
   RVal[7]  = rdec;
-  RVal[8]  = vNSun[0];
+  RVal[8]  = vNSun[0];  //NOTE: normalized vector pointing to sun, in sapcecraft frame
   RVal[9]  = vNSun[1];
   RVal[10] = vNSun[2];
-  
 
   return;
 
@@ -1290,6 +1284,10 @@ void angularSep(double pra, double pdec, double ra, double dec, double *theta){
  
   return;
 }
+
+//double angularSep(double pra, double pdec, double ra, double dec){
+//  return acos(std::min(std::max(cos(pdec)*cos(dec)*cos(pra-ra)+sin(pdec)*sin(dec),-1.0),1.0));
+//}
 
 
 void getslewtime(double pra, double pdec, double ra, double dec, double res, double *slewt){
@@ -2129,7 +2127,7 @@ void sgp4 (double tsince, struct vector *pos, struct vector *vel, atElemTle *sat
         /* position + velocity */
 	for (i=0;(i<3);i++)
 	{
-		pos->v[i] = rk * UV.v[i];
+		pos->v[i] = rk * UV.v[i];   // NOTE: unit, earth radius
 		vel->v[i] = rdotk * UV.v[i] + rfdotk * VV.v[i];
         }
 }

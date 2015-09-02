@@ -199,10 +199,20 @@ struct Attitude {
   /// Boolean to specify if spacecraft is in occultation (1) or not (0)
   std::vector <int> in_occ;                       
                                
+  void print()const
+  {
+    if(ent != mjd.size()){
+      std::cout<<"events number error..."<<std::endl;     
+      return;
+    }
+    for(int i=0;i<ent;++i){
+      std::cout<<"i "<<i<<"\tmjd = "<<mjd[i]<<"\t("<<SatRA[i]<<","<<SatDEC[i]<<")\t("<<Xra[i]<<","<<Xdec[i]<<")\t("<<Yra[i]<<","<<Ydec[i]<<")\t("<<Zra[i]<<","<<Zdec[i]<<std::endl;
+    }
+  }
 
   /// Number of entries in each array
   int ent;
-} ;
+};
 
 
 
