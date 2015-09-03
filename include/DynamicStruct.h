@@ -8,18 +8,20 @@
  */
 
 
-
-
 #ifndef DynamicStruct_h
 #define DynamicStruct_h
 
 #include <vector>
+//#include "functions.h"
+
+//#define DEG2RAD 0.017453292519943295769
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include "atFunctions.h"
 
 
   /**
@@ -202,12 +204,37 @@ struct Attitude {
   void print()const
   {
     if(ent != mjd.size()){
-      std::cout<<"events number error..."<<std::endl;     
+      std::cout<<"events number error..."<<ent<<"\tsize = "<<mjd.size()<<std::endl;     
       return;
     }
     for(int i=0;i<ent;++i){
       std::cout<<"i "<<i<<"\tmjd = "<<mjd[i]<<"\t("<<SatRA[i]<<","<<SatDEC[i]<<")\t("<<Xra[i]<<","<<Xdec[i]<<")\t("<<Yra[i]<<","<<Ydec[i]<<")\t("<<Zra[i]<<","<<Zdec[i]<<std::endl;
     }
+  }
+
+  void print(int i)const
+  {
+    //for(int i=0;i<ent;++i){
+      std::cout<<"i "<<i<<"\tmjd = "<<mjd[i]<<"\t("<<SatRA[i]<<","<<SatDEC[i]<<")\t("<<Xra[i]<<","<<Xdec[i]<<")\t("<<Yra[i]<<","<<Ydec[i]<<")\t("<<Zra[i]<<","<<Zdec[i]<<std::endl;
+    //}
+  }
+
+  void copy(Attitude *r,int k)
+  {
+	mjd[k]    = r->mjd[k];
+	SatRA[k]  = r->SatRA[k];
+	SatDEC[k] = r->SatDEC[k];
+	Xra[k]    = r->Xra[k];
+	Xdec[k]   = r->Xdec[k];
+	Yra[k]    = r->Yra[k];
+	Ydec[k]   = r->Ydec[k];
+	Zra[k]    = r->Zra[k];
+	Zdec[k]   = r->Zdec[k];
+  }
+
+  double zOffset(int k)const
+  {
+    return angularSepDEG(SatRA[k]*DEG2RAD,SatDEC[k]*DEG2RAD,Zra[k]*DEG2RAD,Zdec[k]*DEG2RAD);
   }
 
   /// Number of entries in each array

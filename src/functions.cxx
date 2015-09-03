@@ -724,7 +724,6 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
     sra = sra+(360.0*DEG2RAD);
   }
 
-
   if(mjd > 1000000.0){
     fosf.err() << "GetPos: bad data input. returning 0 vector\n";
     int j=0;
@@ -1008,9 +1007,7 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
   RVal[8]  = vNSun[0];  //NOTE: normalized vector pointing to sun, in sapcecraft frame
   RVal[9]  = vNSun[1];
   RVal[10] = vNSun[2];
-
   return;
-
 } /* end GetPos */
 
 
@@ -1285,9 +1282,9 @@ void angularSep(double pra, double pdec, double ra, double dec, double *theta){
   return;
 }
 
-//double angularSep(double pra, double pdec, double ra, double dec){
-//  return acos(std::min(std::max(cos(pdec)*cos(dec)*cos(pra-ra)+sin(pdec)*sin(dec),-1.0),1.0));
-//}
+double angularSepDEG(double pra, double pdec, double ra, double dec){
+  return acos(std::min(std::max(cos(pdec)*cos(dec)*cos(pra-ra)+sin(pdec)*sin(dec),-1.0),1.0)) * RAD2DEG;
+}
 
 
 void getslewtime(double pra, double pdec, double ra, double dec, double res, double *slewt){

@@ -305,10 +305,10 @@ void MakeAtt2(double mjdt, double mjde, double pra, double pdec,
    * @param res - time resolution as given at the input process
    * @param offset - rocking angle offset used for SURVEY observations
    * @param ephem - pointer to an ephemeredis structure
-   * @param rd - array that contains RA and DEC at end time; this will be used for the next round.
+   * @param rd - array that contains RA and DEC at end time; this will be used for the next round.  output off mode 0
    * @param mode - if only RA and DEC at time t, the mode should be 0, 1 otherwise
    * @param OAtt - Overall attitude structure
-   * @param TS - start time in mjd for the attitude structure
+   * @param TS - start time in mjd for the attitude structure.
    *
    * 
    * @author Giuseppe Romeo

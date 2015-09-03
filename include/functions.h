@@ -12,7 +12,7 @@
 #define Functions_h
 
 #include "orbitSimStruct.h"
-#include "DynamicStruct.h"
+//#include "DynamicStruct.h"
 
 
 #ifdef __cplusplus
@@ -45,7 +45,7 @@ extern "C" {
 
 
   /// GLAST Slew rate in degrees per minutes
-#define SLEW_RATE 7.5    
+#define SLEW_RATE 7.5
   /// GLAST Sun Limit in degrees
 #define SUN_LIMIT 10.0   
 
@@ -673,7 +673,7 @@ void rade2xyz( double ra,  double dec, AtVect xyz);
    * @date Created:  Nov 15, 2005
    */
 void angularSep(double pra, double pdec, double ra, double dec, double *theta);
-//double angularSep(double pra, double pdec, double ra, double dec);
+double angularSepDEG(double pra, double pdec, double ra, double dec);   // NOTE: unit degree
 
 
 

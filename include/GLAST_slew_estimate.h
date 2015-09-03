@@ -10,12 +10,6 @@ double GLAST_slew_estimate ( double ra_s, double dec_s, // sun coordinates (radi
 			     double ra_i, double dec_i, // initial pointing
 			     double ra_f, double dec_f // final pointing
 			     );
-
-
-
-
-
-
 #ifdef __cplusplus
 }
 #endif

@@ -1327,8 +1327,6 @@ double parseAsFline(char *ln, int *mode, double *val1, double *val2){
 
 
 
-
-
 Attitude * doCmd(InitI *ini, EphemData *ephem) {
 
   double Timespan = (ini->stop_MJD-ini->start_MJD);
@@ -1491,10 +1489,8 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
     MakeAtt2(ini->start_MJD, ini->stop_MJD, ini->Ira, ini->Idec, offset, ra, dec, 
 	     mode, ini->Resolution, ephem, lpos, OAtt, ini->start_MJD);
   }else {
-    
     std::ostringstream eBuf;
     eBuf << "\n"<<__FILE__ << ":" << __LINE__ << " ERROR: doCmd SINGLE command " << ini->TLname << " is unknown!\nExiting now........................\n\n" << std::ends;
-
     throw std::runtime_error(eBuf.str());
   }
 

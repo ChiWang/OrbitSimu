@@ -182,10 +182,8 @@ int main(int argc, char** argv)
   // ATTITUDE DEFINITION
   //Make an empty Attitude structure Oat. 
   Attitude *Oat = doCmd(&initf, ephemeris);       // NOTE:  important!! OrbSim.h
-
   // Restore stop_MJD to its correct, but smaller value
   //initf.stop_MJD=initf.stop_MJD-stop_buffer;
-
   if(Oat == NULL){
     std::cout << "\nPossibly something went wrong while calculating the spacecraft attitude.\nThe Attitude structure is still \"NULL\"\n\n" << std::endl;
     return -1;
