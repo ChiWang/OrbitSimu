@@ -738,7 +738,7 @@ int calculate_slopes(double *lon, double *lat, int num_saa, double *slopes, doub
 
 
   /**
-   * @brief Function that determines if a specified point is inside
+   * @brief Function that determines if a specified point is inside (return 1, no inside=0)
    * the saa polygon determined by the passed longitude/latitude arrays
    *
    * 

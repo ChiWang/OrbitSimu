@@ -1577,8 +1577,6 @@ int calculate_slopes(double *lon, double *lat, int num_saa, double *slopes,
     fosf.err() << "Error:  calculate_slopes needs more than 2 polygon pts"; 
     return -1; /* error */ 
   }
-
-
   for (i=1;i<num_saa;++i) {
     if(lat[i+1] != lat[i]) {
        slopes[i] = ( lon[i+1] - lon[i])/(lat[i+1] - lat[i]);
@@ -1588,8 +1586,6 @@ int calculate_slopes(double *lon, double *lat, int num_saa, double *slopes,
     }
     intercepts[i] = lon[i] - slopes[i] * lat[i];
   }
-
- 
   return 0;
 }
 
@@ -2126,7 +2122,7 @@ void sgp4 (double tsince, struct vector *pos, struct vector *vel, atElemTle *sat
 	{
 		pos->v[i] = rk * UV.v[i];   // NOTE: unit, earth radius
 		vel->v[i] = rdotk * UV.v[i] + rfdotk * VV.v[i];
-        }
+    }
 }
 
 

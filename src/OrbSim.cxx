@@ -948,8 +948,6 @@ Attitude * makeAttTako(InitI *ini, EphemData *ephem) {
 
 
 
-
-
 Attitude * makeAttAsFl(InitI *ini, EphemData *ephem) {
 
 
@@ -1325,10 +1323,8 @@ double parseAsFline(char *ln, int *mode, double *val1, double *val2){
 }
 
 
-
-
-Attitude * doCmd(InitI *ini, EphemData *ephem) {
-
+Attitude * doCmd(InitI *ini, EphemData *ephem)
+{
   double Timespan = (ini->stop_MJD-ini->start_MJD);
   double res = ini->Resolution;
   int inum = (int)((Timespan+res/2.0)/res);
@@ -1497,14 +1493,14 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
 //-------------------------------------------------------------------
 //-------------------------------------------------------------------
 
-  saa( ephem, ini->saafile.c_str(), ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);  //NOTE: read_ephem
+  saa(ephem, ini->saafile.c_str(), ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);  //NOTE: read_ephem
 
   if(ini->occflag == 1){
     // Getting the occultation
     occult ( ephem, ini->start_MJD, ini->stop_MJD, ini->Resolution,
-	     OAtt, ini->EAA, ini->ELT_OFF_START, ini->ELT_OFF_STOP);
+	     OAtt, ini->EAA, ini->ELT_OFF_START, ini->ELT_OFF_STOP);    //NOTE: inputs ??
     doLimbTrace(ephem, ini->start_MJD, ini->stop_MJD, ini->Resolution, OAtt);
-    int rechk = 0;
+    int rechk = 0;  //NOTE: == 0??
     if(rechk){
       occult ( ephem, ini->start_MJD, ini->stop_MJD, ini->Resolution,
 	       OAtt, ini->EAA, ini->ELT_OFF_START, ini->ELT_OFF_STOP);
@@ -1516,17 +1512,16 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
   if(!ini->OptFile.empty() ){
     if ( (OutF=fopen(ini->OptFile.c_str(),"w")) == NULL) {
       losf.err() << "Cound not open OutPut file " << ini->OptFile << "\n";
-    }  
+    }
     fprintf(OutF, "     MJD          UTC            SAT_RA       SAT_DEC       X_RA       X_DEC       Y_RA       Y_DEC       Z_RA       Z_DEC       IN_SAA\n");
   }
 
-  OAtt->ent= inum;
-  int i;
-  for(i=1; i<inum; i++){
+  //OAtt->ent= inum;    //NOTE: updated in allocateattitude()...
+  for(int i=0; i<inum; i++){    //NOTE: change to 0 by CHI
+  //for(int i=1; i<inum; i++){    //NOTE: why start from 1
     int yyy, doy, hh, mm, ss;
     do_mjd2utc(OAtt->mjd[i], &yyy, &doy, &hh, &mm, &ss);
     
-
     if(!ini->OptFile.empty() && OutF != NULL){
       fprintf(OutF, " %15.8f   %d/%03d:%02d:%02d:%02d  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f     %d\n", 
 	      OAtt->mjd[i], yyy, doy, hh, mm, ss,  OAtt->SatRA[i], OAtt->SatDEC[i], OAtt->Xra[i], OAtt->Xdec[i],
@@ -1535,12 +1530,10 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
 
     if(i>1){
       if(fabs((OAtt->mjd[i]-OAtt->mjd[i-1])-ini->Resolution) > 0.0000000001){
-
 	  losf.err() << "Something is wrong:i=" << (i-1) << " mjd=" << OAtt->mjd[i-1] << ",  i=" << i << " mjd=" << OAtt->mjd[i] << " ===> " << (fabs(OAtt->mjd[i]-OAtt->mjd[i-1])*1440.0) << "\n";
-
+      std::cout<< "Something is wrong:i=" << (i-1) << " mjd=" << OAtt->mjd[i-1] << ",  i=" << i << " mjd=" << OAtt->mjd[i] << " ===> " << (fabs(OAtt->mjd[i]-OAtt->mjd[i-1])*1440.0) << "\n";
       }
     }
-
   }
 
 
@@ -1549,8 +1542,7 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
   }
 
   int k = 0;
-  for(i=0; i<inum; i++){
-
+  for(int i=0; i<inum; i++){
     if(OAtt->mjd[i] == ephem->MJD[i]){
       OAtt->X[i]      = ephem->X[i];
       OAtt->Y[i]      = ephem->Y[i];
@@ -1563,20 +1555,17 @@ Attitude * doCmd(InitI *ini, EphemData *ephem) {
       losf.out() << __FILE__ <<":" << __LINE__ << ", " << i << ") OAtt->mjd[" << i << "]=" << OAtt->mjd[i] << ", ephem->MJD[" << i << "]=" << ephem->MJD[i] << "\n";
     }
 
-
     if(k > inum){
       std::ostringstream eBuf;
       eBuf << "\n"<<__FILE__ << ":" << __LINE__ << " ERROR: Something is wrong since tried to access array element beyond limits of the attitude structure\n\n" << std::ends;
-
       throw std::runtime_error(eBuf.str());
     }
-
   }
 
   if(k != inum){
     std::ostringstream eBuf;
     eBuf << "\n"<<__FILE__ << ":" << __LINE__ << " ERROR: Expected " << inum << " elements, but found " << k << " in the attitude structure\n\n" << std::ends;
-
+std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
     throw std::runtime_error(eBuf.str());
   }
 

@@ -636,16 +636,14 @@ EphemData * tlederive(FILE *ifp, double StartTime,
       if(pos.v[0] == 0.0 && pos.v[1] == 0.0 && pos.v[0] == 0.0){
 	osf.warn() << "at Sat#=" << is << "X=" << pos.v[0]* xkmper << ", Y=" << pos.v[1]* xkmper << ",Z=" << pos.v[2]* xkmper << ", the position vector is null \n";
     std::cout << "at Sat#=" << is << "X=" << pos.v[0]* xkmper << ", Y=" << pos.v[1]* xkmper << ",Z=" << pos.v[2]* xkmper << ", the position vector is null \n"<<std::endl;
-      //printf("%4d %02d %02d %02d %02d %05d %f %f %f %f\n",tz.yr, tz.mo, tz.dy, tz.hr, tz.mn, tz.sc, pos.v[0]* xkmper, pos.v[1]* xkmper, pos.v[2]* xkmper, Units); 1
-
 /*
+      //printf("%4d %02d %02d %02d %02d %05d %f %f %f %f\n",tz.yr, tz.mo, tz.dy, tz.hr, tz.mn, tz.sc, pos.v[0]* xkmper, pos.v[1]* xkmper, pos.v[2]* xkmper, Units); 1
       if(it < 0)
 	printf("%4d %02d %02d %02d %02d %05d %f %f %f %f\n",tz.yr, tz.mo, tz.dy, tz.hr, tz.mn, tz.sc, pos.v[0]* xkmper, pos.v[1]* xkmper, pos.v[2]* xkmper, Units);
 */
     }
 
       //  break;
-
       vSat[0] = pos.v[0] * Units * xkmper;
       vSat[1] = pos.v[1] * Units * xkmper;
       vSat[2] = pos.v[2] * Units * xkmper;
@@ -655,7 +653,7 @@ EphemData * tlederive(FILE *ifp, double StartTime,
 //      xxx[1] = vel.v[1];
 //      xxx[2] = vel.v[2];
 //      atNormVect(xxx,xxN);
-//std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tNEVT"<<it<<"\tST"<<tsince<<"\t"<<xxN[0]<<"\t"<<xxN[1]<<"\t"<<xxN[2]<<std::endl;
+//std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tNEVT"<<it<<"\t"<<xxN[0]<<"\t"<<xxN[1]<<"\t"<<xxN[2]<<std::endl;
       
       atGeodetic(mjd,vSat,gSat);    // NOTE: atFunction. sidereal equatorial coordinate 2 geodetic coordinate at mjd(vSat->gSat)
       atVectToPol(gSat,&gSatP);     // NOTE: only cartesian vector->polar vector (but geodetic is a ellipsoid!!, so need to call the next line to corret lattitude!)
@@ -988,7 +986,6 @@ void MakeSurvey(double start, double end, double res, double offset,
   const int SunAvPts = 10;
   double TOfs = 18.25*DEG2RAD;
   int SSunPts, TSunPts;
-  //int last_k=0; //  NOTE:
   //double SunSurvOfs = 0.0;
   for (int i=j;i<inum+j;++i){
     /* Get the satellite vector in ECI */
@@ -1070,10 +1067,6 @@ void MakeSurvey(double start, double end, double res, double offset,
     OAtt->Zdec[k]   = zdec;
     }
     k++;
-    //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")k = "<<k<<std::endl;
-    //if(k-last_k != 1) std::cout<<"checkK\tDEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<k-last_k<<std::endl;
-    //last_k=k;
-
     if(k >=inum+j){
       break;
     }
@@ -1089,7 +1082,6 @@ void MakeSurvey(double start, double end, double res, double offset,
 
     {   // NOTE: get the next position
     ii = i+1;
-
     if (ii >= j+inum || ii >= ephem->ent){
       break;
     }
@@ -1744,106 +1736,92 @@ void MakePointed(double start, double end, double res, double ra,
 void saa( EphemData *EphemPtr, const char *filename, double StartTime, 
 	  double EndTime, double Resolution, Attitude *att) {
 
-  double lontable[52],lattable[52], lat, lon, pt, nextpt;
-  int i, inum, num_saa, num_lat, num_lon, isaa;
-  double slopes[52];      /* slopes of SAA polygon sides (deg) */
-  double intercepts[52];  /* intercepts of SAA polygon sides (deg) */
-  double minLat, minLon, maxLat, maxLon;
-  FILE *fptr;
-  char jnk[20];
-  const int lnsz = 200;
-  char  line[lnsz];
-
   osf.setMethod("saa");
 
   /* CODE HERE */
-
-  
-  num_saa = 0;
-  num_lat = 0;
-  num_lon = 0;
-   
+  int num_saa = 0;
+  int num_lat = 0;
+  int num_lon = 0;
+  double lontable[52],lattable[52];
+  double minLat, minLon, maxLat, maxLon;
+  double slopes[52];      /* slopes of SAA polygon sides (deg) */
+  double intercepts[52];  /* intercepts of SAA polygon sides (deg) */
   
   if (strcmp(filename,"NULL")!= 0) {
     /* a filename was passed in, read the longitude and latitude pairs */
-   
-    if ((fptr = fopen(filename, "r")) == NULL) 
+    FILE *fptr;
+    char jnk[20];
+    const int lnsz = 200;
+    char  line[lnsz];
+    if ((fptr = fopen(filename, "r")) == NULL) {
       osf.err() << "saa constraint: could not open file " << filename  << ".\n";
-    else {
-
-      
+      std::cout<< "saa constraint: could not open file " << filename  << ".\n"<<std::endl;
+      throw;
+    }else {
       /* Read file. Ignore comment lines (#), truncate if more than 50 pairs */
       while ((fgets(line,lnsz,fptr) != NULL) && (num_lat < 50) && (num_lon < 50) ) {
-
-	if (line[0] != '#') {
-	  if(strncmp(line, "SAAPOLYLAT", 10) == 0){
-	    num_lat++;
-	    sscanf (line, "%13c%lf", jnk,&lattable[num_lat]); 
-	  }else if(strncmp(line, "SAAPOLYLONG", 11) == 0){
-	    num_lon++;
-	    sscanf (line, "%14c%lf", jnk,&lontable[num_lon]);
-	    if (lontable[num_lon] >= 180.0) lontable[num_lon]-=360.0;
-	  } else {
-	    sscanf (line, "%lf %lf", &lontable[num_saa], &lattable[num_saa]);
-	    if (lontable[num_saa] >= 180.0) lontable[num_saa]-=360.0;
-	    num_saa++;
-	    num_lat++;
-	    num_lon++;
-
-	  }
-
-
-	}
-
+	    if (line[0] != '#') {
+	      if(strncmp(line, "SAAPOLYLAT", 10) == 0){
+	        num_lat++;
+	        sscanf (line, "%13c%lf", jnk,&lattable[num_lat]); 
+    //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<lattable[num_lat]<<std::endl;
+	      }else if(strncmp(line, "SAAPOLYLONG", 11) == 0){
+	        num_lon++;
+	        sscanf (line, "%14c%lf", jnk,&lontable[num_lon]);
+	        if (lontable[num_lon] >= 180.0) lontable[num_lon]-=360.0;
+    //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<lontable[num_lon]<<std::endl;
+	      } else {
+	        sscanf (line, "%lf %lf", &lontable[num_saa], &lattable[num_saa]);
+	        if (lontable[num_saa] >= 180.0) lontable[num_saa]-=360.0;
+	        num_saa++;
+	        num_lat++;
+	        num_lon++;
+	      }
+	    }
       }
-    
       fclose(fptr);
-
-
       if(num_lat != num_lon){
-	      
-
-	std::ostringstream eBufT;
-	eBufT << "\n" << __FILE__ << ":" << __LINE__ << "\n";
-	eBufT << "ERROR: while reading SAA LAT and LONG, from file:\n";
-	eBufT << "           " << filename << "\n";
-	eBufT << "           it appears that the number of lat is " << num_lat << "\n";
-	eBufT << "           while the number of long is " << num_lon << "\n";
-	eBufT << "Please, correct this problem. Exiting for now.....\n\n"  <<std::ends;
-	throw std::runtime_error(eBufT.str());
-
+	    std::ostringstream eBufT;
+	    eBufT << "\n" << __FILE__ << ":" << __LINE__ << "\n";
+	    eBufT << "ERROR: while reading SAA LAT and LONG, from file:\n";
+	    eBufT << "           " << filename << "\n";
+	    eBufT << "           it appears that the number of lat is " << num_lat << "\n";
+	    eBufT << "           while the number of long is " << num_lon << "\n";
+	    eBufT << "Please, correct this problem. Exiting for now.....\n\n"  <<std::ends;
+	    throw std::runtime_error(eBufT.str());
       } else {
-	num_saa = num_lat;
+	    num_saa = num_lat;
+        if (num_saa <= 0) throw;
+        //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<num_saa<<"\t"<<num_lat<<"\t"<<num_lon<<std::endl;
       }
-
-
-
-
      /*  For the following algorithm to work, the last pair must be the same as the 1st. If the
          file doesn't do this (likely), then add the last pair.                                  */
-
-      if (num_saa > 0)
-	if ((lontable[1] != lontable[num_saa]) || (lattable[1] != lattable[num_saa]))
-        {
-	  num_saa++;
-	  lontable[num_saa] = lontable[1];
-	  lattable[num_saa] = lattable[1];
-        }
-
+	  if ((lontable[1] != lontable[num_saa]) || (lattable[1] != lattable[num_saa])){
+	    num_saa++;
+	    lontable[num_saa] = lontable[1];
+	    lattable[num_saa] = lattable[1];
+        //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<num_saa<<"\t"<<num_lat<<"\t"<<num_lon<<std::endl;
+      }
     }
   }
+
+  //for(int i=0;i<=num_saa;++i){
+  //  std::cout<<"1DEBUG: "<<__FILE__<<"("<<__LINE__<<")i = "<<i<<"\t"<<lattable[i]<<std::endl;
+  //}
+  //for(int i=0;i<=num_saa;++i){
+  //  std::cout<<"2DEBUG: "<<__FILE__<<"("<<__LINE__<<")i = "<<i<<"\t"<<lontable[i]<<std::endl;
+  //}
+  //throw;
  
-  if(find_minmax(&lontable[0],&lattable[0],num_saa, &minLon,&maxLon,&minLat,&maxLat) !=0){
+  if(find_minmax(&lontable[0],&lattable[0],num_saa, &minLon,&maxLon,&minLat,&maxLat) !=0){  //NOTE: function.h
     std::ostringstream eBufT;
     eBufT << "\n" << __FILE__ << ":" << __LINE__ << "saa constraint could not find min and max saa (lat,lon)\n\n" <<std::ends;
-
     throw std::runtime_error(eBufT.str());
   }
 
-  if(calculate_slopes(&lontable[0],&lattable[0],num_saa, &slopes[0],&intercepts[0])!=0){
+  if(calculate_slopes(&lontable[0],&lattable[0],num_saa, &slopes[0],&intercepts[0])!=0){    //NOTE: function.h
     std::ostringstream eBufT;
     eBufT << "\n" << __FILE__ << ":" << __LINE__ << "saa constraint could not find saa slopes/intercepts\n\n" <<std::ends;
-
     throw std::runtime_error(eBufT.str());
   }
 
@@ -1853,25 +1831,17 @@ void saa( EphemData *EphemPtr, const char *filename, double StartTime,
      because it caused 10080.0000 to be truncated to 10079
      New calc adds rounding factor to prevent this. */
 
-  inum =  (int)((EndTime-StartTime+Resolution/2.)/Resolution);
+  int inum =  (int)((EndTime-StartTime+Resolution/2.)/Resolution);
   inum++; //GR increased number of data points by one;
-
 
   /* now actually generates the SAA points */
  
   /* printf("Checking SAA for %d points.\n",inum); */
-  for (i=0;i<inum;++i) {
-
-    lat = EphemPtr->Lat[i]; /* assume it's in degrees? */
-    lon = EphemPtr->Long[i];
+  for (int i=0;i<inum;++i) {
+    double lat = EphemPtr->Lat[i]; /* assume it's in degrees? */
+    double lon = EphemPtr->Long[i];
     if (lon >= 180.) lon-=360.;
-
-
-    isaa=pt_in_polygon(lat,lon,lattable,lontable,slopes,intercepts,
-		       num_saa,minLon,maxLon,minLat,maxLat);
-
-    att->in_saa[i] = 1*isaa;
-   
+    att->in_saa[i] = pt_in_polygon(lat,lon,lattable,lontable,slopes,intercepts,num_saa,minLon,maxLon,minLat,maxLat);
   }
 
   /* Make sure the constraint encloses the SAA period. For the beginning of the
@@ -1883,17 +1853,25 @@ void saa( EphemData *EphemPtr, const char *filename, double StartTime,
      The resulting SAA constraint period will have up to one resolution (one minute) 
      padding at the beginning and end. */
 
-  pt = (double) att->in_saa[0];
+  /*    NOTE: the same as the following
+  double pt = (double) att->in_saa[0];
  
-  for (i=0;i<inum-1;++i) {
-    
-    nextpt = (double) att->in_saa[i+1];
+  for(int i=0;i<inum-1;++i) {
+    double nextpt = (double) att->in_saa[i+1];
     if ((int)nextpt == 1 && (int)pt == 0) {
-      /* round up at beginning of SAA period */
+      // round up at beginning of SAA period
       att->in_saa[i] = 1;
+      std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")MY = "<<i<<std::endl;
     }
- 
     pt=nextpt;
+  }
+  */
+
+  for(int i=0;i<inum-1;++i){
+    if(att->in_saa[i+1] == 1 && att->in_saa[i] ==0){
+      att->in_saa[i] = 1;
+      //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")MY = "<<i<<std::endl;
+    }
   }
 
   return;
