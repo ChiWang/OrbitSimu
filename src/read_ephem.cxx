@@ -591,7 +591,7 @@ EphemData * tlederive(FILE *ifp, double StartTime,
   int istatus = readTLE(Nlines, SatN, ln, &Tle, StartTime, EndTime, resol);     // NOTE: src/functionU. read data from *tle file (ln)
   if(istatus !=1) return 0;
   //std::cout << "istatus " << istatus << std::endl;
-  std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")resolut = "<<resol<<std::endl;  Tle.print();
+  //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")resolut = "<<resol<<std::endl;  Tle.print();
 
   AtTime tz;    // NOTE: why need me?
     tz.yr = Tle.tm.yr;
@@ -625,7 +625,6 @@ EphemData * tlederive(FILE *ifp, double StartTime,
 
   // NOTE: important!! update orbit position(EC sys) and latitude longitude and altitude (geodetic coordinate)
     EphemData *ephemeris = allocateEphem(inum);
-    std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
     for(int it =0;it < inum;++it) {
       double tsince = tdif+it * resol;
       sgp4(tsince, &pos, &vel, &Tle);   //NOTE: important!! input: tsince(time elapsed since the TLE epoch) and atElemTle(Tle parameters, NORAD two-lines). output: update positon and velocity in the ECI system.  from functions.h
@@ -675,7 +674,6 @@ EphemData * tlederive(FILE *ifp, double StartTime,
 
       mjd += resol/minInDay;
     }
-    std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\n\n"<<std::endl;
 
     /* ephemeris->Period = Period; */
     ephemeris->SemiMajorAxis = 0;
@@ -1909,7 +1907,9 @@ void doSurvey(double start, double end, double res, double ira, double idec,
   osf.info(4) << __FILE__ << ":" << __LINE__ << ", called MakeSurvey with offset=" << -offset << "\n\n";
 
   double mjds = start;
-  //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")"<<std::endl;
+  std::cout<<"DAMPE: rest Ini_ira_idec "<<__FILE__<<"("<<__LINE__<<")\t("<<ira<<","<<idec<<")\tto ("<<OAtt1->Zra[0]<<","<<OAtt1->Zdec[0]<<")"<<std::endl;
+  ira = OAtt1->Zra[0];   //NOTE: for DAMPe, reset ira and idec
+  idec = OAtt1->Zdec[0];
   int j =  getEndPoint (start, &mjds, ira, idec, OAtt1, 0, start, res); // NOTE:   read_ephem: update mjds
   //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tendpoint "<<j<<"\tstart MJD = "<<start<<"\tend P mjd = "<<mjds<<std::endl;
   double ra  = OAtt1->Zra[j];
@@ -1949,10 +1949,10 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 */
 	    if(ia == 1){    //NOTE:
 	      double mjdi = OAtt1->mjd[k];
-	      double ira  = OAtt1->Zra[k];  //NOTE: initial_RA_DEC of Z axis of spacecraft
-	      double idec = OAtt1->Zdec[k];
+	      double _ira  = OAtt1->Zra[k];  //NOTE: initial_RA_DEC of Z axis of spacecraft
+	      double _idec = OAtt1->Zdec[k];
 	      mjds = mjdi;
-	      j =  getEndPoint(mjdi, &mjds, ira, idec, OAtt2, k, start, res);
+	      j =  getEndPoint(mjdi, &mjds, _ira, _idec, OAtt2, k, start, res);
           //std::cout<<"CHIDEBUG: "<<__FILE__<<"("<<__LINE__<<")\n"<<std::endl;
 	      int dn = j-k;
 	      if(dn > 0){
@@ -1972,10 +1972,10 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 	      ia = 2;
 	    }else{
 	      double mjdi = OAtt2->mjd[k];
-	      double ira  = OAtt2->Zra[k];
-	      double idec = OAtt2->Zdec[k];
+	      double _ira  = OAtt2->Zra[k];
+	      double _idec = OAtt2->Zdec[k];
 	      mjds = mjdi;
-	      j =  getEndPoint (mjdi, &mjds, ira, idec, OAtt1, k, start, res);
+	      j =  getEndPoint (mjdi, &mjds, _ira, _idec, OAtt1, k, start, res);
           //std::cout<<"CHIDEBUG: "<<__FILE__<<"("<<__LINE__<<")\n"<<std::endl;
 	      int dn = j-k;
 	      if (dn > 0){
@@ -1998,20 +1998,20 @@ void doSurvey(double start, double end, double res, double ira, double idec,
         //OAtt2->print(k);
         //OAtt->print(k);
       }else{
-//std::cout<<"44DEBUG: "<<__FILE__<<"("<<__LINE__<<")n "<<k<<"\toffset="<<OAtt->zOffset(k)<<std::endl;
 	    if(ia == 1){
 	        OAtt->copy(OAtt1,k);
 	    }else{
 	        OAtt->copy(OAtt2,k);
 	    }
+//std::cout<<"44DEBUG: "<<__FILE__<<"("<<__LINE__<<")n "<<k<<"\toffset="<<OAtt->zOffset(k)<<std::endl;
       }
     }else{
-//std::cout<<"55DEBUG: "<<__FILE__<<"("<<__LINE__<<")n "<<k<<"\toffset="<<OAtt->zOffset(k)<<std::endl;
       if(ia == 1){
 	    OAtt->copy(OAtt1,k);
       } else {
 	    OAtt->copy(OAtt2,k);
       }
+//std::cout<<"55DEBUG: "<<__FILE__<<"("<<__LINE__<<")n "<<k<<"\toffset="<<OAtt->zOffset(k)<<std::endl;
     }
   }
 
@@ -2023,7 +2023,7 @@ void doSurvey(double start, double end, double res, double ira, double idec,
 
 
 
-int getEndPoint (double mjdi, double *mjds, double ira, double idec, 
+int getEndPoint(double mjdi, double *mjds, double ira, double idec, 
 		 Attitude *LAtt, int idx, double start, double res){
 
   double theta = 0.0;

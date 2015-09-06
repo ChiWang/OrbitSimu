@@ -666,7 +666,6 @@ double InterPVect(double y1, double y2, double x1, double x2, double x0) {
 
 
 void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal){
-
 /*
  * Subroutine: GetPos
  *
@@ -693,7 +692,6 @@ void GetPos(double mjd, AtVect vSat, AtVect vNVel, double SurvOfs, double *RVal)
  *            RVal[10] = degrees, declination of the sun
  *
  */
-
 /*
   sra, sdec are the spacecraft right Ascension and declination
   pra, pdec is where the spacecraft is pointing

@@ -53,11 +53,11 @@ int main(int argc, char** argv)
   double start_MJD = IniReadDouble(Ini_Filename, "Start_MJD", 57388); 
   double stop_MJD = IniReadDouble(Ini_Filename, "Stop_MJD",57389);
 
-  double Ira = IniReadDouble(Ini_Filename, "Ira",0.);   // NOTE: for DAMPE, decending node is 317.2335
-  double Idec = IniReadDouble(Ini_Filename, "Idec",0.);
+  double Ira = IniReadDouble(Ini_Filename, "Ira",0.);   // NOTE: for DAMPE, decending node is 317.2335, but the initial_ra should calculate in doSurvey()
+  double Idec = IniReadDouble(Ini_Filename, "Idec",0.); //NOTE: not for DAMPE
   double Units = IniReadDouble(Ini_Filename, "Units",1.);
   double Resolution = IniReadDouble(Ini_Filename, "Resolution",1.);
-  char* TLname =  IniReadString(Ini_Filename, "TimelnCmd", "|SURVEY|+0.1|");
+  char* TLname =  IniReadString(Ini_Filename, "TimelnCmd", "|SURVEY|+0.0|");
   char* saafile = IniReadString(Ini_Filename, "saafile", "./L_SAA_2008198.03");   // NOTE: satellite accumulation area
   std::cout <<  "saafile: " << saafile << std::endl;
   char* RootFileName = IniReadString(Ini_Filename, "RootFileName", Form("./Orbit_MJD%g_%g_R%g.root",start_MJD,stop_MJD,Resolution));
@@ -94,7 +94,6 @@ int main(int argc, char** argv)
 
   AtVect vSatZenith;
   AtPolarVect pSatZenith;  
-  
 
 
   InitI initf;  // NOTE: ../include/orbitSimStruct.h
@@ -111,19 +110,19 @@ int main(int argc, char** argv)
   /// Timeline type (TAKO, ASFLOWN, or SINGLE)
   initf.TLtype = "SURVAY"; // fixed since is the only way implemented to simulate DAMPE Attitude
   /// Initial RA                    
-  initf.Ira = Ira;   
-  /// Initial DEC      
-  initf.Idec =Idec; 
+  initf.Ira = Ira;  // NOTE: for DAMPE, this value is satellite ira at start time
+  /// Initial DEC
+  initf.Idec =Idec; // NOTE: refer to Ira
   /// conversion factor to convert in Km    
   initf.Units = Units;  
   /// Ephemeris resolution, and therefore   
   /// orbit simulator resolution in minutes
   initf.Resolution = Resolution;
   /// Timeline file name, path included
-  initf.TLname = TLname;
+  initf.TLname = "|SURVEY|+0.0|";   //NOTE: fixed mode and offset for DAMPE
   /// SAA file definition    
   initf.saafile = saafile ;
-  std::cout <<  "saafile: " << saafile << std::endl;
+  //std::cout <<  "saafile: " << saafile << std::endl;
   int yy, MM, dd, hh, mm, ss;
   do_mjd2cal(initf.start_MJD, &yy, &MM, &dd, &hh, &mm, &ss);
   printf("\n Start Date: %4d-%02d-%02dT%02d:%02d:%02d \n", yy, MM, dd, hh, mm, ss);
@@ -177,7 +176,7 @@ int main(int argc, char** argv)
   }
   // just for test
   std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\tstop mjd = "<<initf.stop_MJD<<"\tstart mjd = "<<initf.start_MJD<<std::endl;
-  std::cout << "From Ephem file, start mjd = " << ephemeris->MJD[0] <<  std::endl;
+  //std::cout << "From Ephem file, start mjd = " << ephemeris->MJD[0] <<  std::endl;
 
   // ATTITUDE DEFINITION
   //Make an empty Attitude structure Oat. 
@@ -238,6 +237,7 @@ int main(int argc, char** argv)
 
     dmpEvtOrbit->ra_zenith = Oat->SatRA[i];
     dmpEvtOrbit->dec_zenith = Oat->SatDEC[i];
+//std::cout<<"WWDEBUG: "<<__FILE__<<"("<<__LINE__<<")\t\ti = "<<i<<"\tra = "<<Oat->SatRA[i]<<"\tdec = "<<Oat->SatDEC[i]<<"\tz offset = "<<Oat->zOffset(i)<<std::endl;
 
     dmpEvtOrbit->ra_scz = Oat->Zra[i];//pSatZ.lon*RAD2DEG;
     dmpEvtOrbit->dec_scz = Oat->Zdec[i];//pSatZ.lat*RAD2DEG;

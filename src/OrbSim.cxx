@@ -1328,7 +1328,7 @@ Attitude * doCmd(InitI *ini, EphemData *ephem)
   double Timespan = (ini->stop_MJD-ini->start_MJD);
   double res = ini->Resolution;
   int inum = (int)((Timespan+res/2.0)/res);
-  std::cout<<inum<<"\t\t"<<ephem->ent<<std::endl;
+  //std::cout<<inum<<"\t\t"<<ephem->ent<<std::endl;
 
   losf.setMethod("doCmd");
   losf.err().precision(12);
@@ -1336,7 +1336,7 @@ Attitude * doCmd(InitI *ini, EphemData *ephem)
 
   //  inum++;
   losf.info(3) << "About to allocate attitude to " << inum << " elements\n";
-  std::cout << "About to allocate attitude to " << inum << " elements\n"<<std::endl;
+  //std::cout << "About to allocate attitude to " << inum << " elements\n"<<std::endl;
 
   Attitude *OAtt = allocateAttitude(inum);
 
@@ -1365,7 +1365,7 @@ Attitude * doCmd(InitI *ini, EphemData *ephem)
       throw std::runtime_error(oBuf.str());
     } else {
       losf.info(3) << "OrbSim should be doing a single cmd about survey with offset=" << offset<< "\n";
-      std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")add = "<<OAtt<<"\toffset = "<<offset<<std::endl;
+      //std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")add = "<<OAtt<<"\toffset = "<<offset<<std::endl;
       doSurvey(ini->start_MJD, ini->stop_MJD, ini->Resolution,  // NOTE: read_ephem
 	       ini->Ira, ini->Idec, offset, ephem, OAtt);
     }
