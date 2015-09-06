@@ -669,7 +669,7 @@ void rade2xyz( double ra,  double dec, AtVect xyz);
    * @date Created:  Nov 15, 2005
    */
 void angularSep(double pra, double pdec, double ra, double dec, double *theta);
-double angularSepDEG(double pra, double pdec, double ra, double dec);   // NOTE: unit degree
+double angularSepDEG(double pra, double pdec, double ra, double dec);   // NOTE: unit of input degree
 
 
 

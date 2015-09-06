@@ -1281,6 +1281,10 @@ void angularSep(double pra, double pdec, double ra, double dec, double *theta){
 }
 
 double angularSepDEG(double pra, double pdec, double ra, double dec){
+        pra = pra*DEG2RAD;
+        pdec = pdec*DEG2RAD;
+        ra = ra*DEG2RAD;
+        dec = dec*DEG2RAD;
   return acos(std::min(std::max(cos(pdec)*cos(dec)*cos(pra-ra)+sin(pdec)*sin(dec),-1.0),1.0)) * RAD2DEG;
 }
 

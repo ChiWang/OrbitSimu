@@ -231,7 +231,20 @@ struct Attitude {
 
   double zOffset(int k)const
   {
-    return angularSepDEG(SatRA[k]*DEG2RAD,SatDEC[k]*DEG2RAD,Zra[k]*DEG2RAD,Zdec[k]*DEG2RAD);
+    return angularSepDEG(SatRA[k],SatDEC[k],Zra[k],Zdec[k]);
+  }
+
+  void printOffset(int k)const
+  {
+    double xz=0,yz=0,xy=0;
+    double s_x=0,s_y=0,s_z=0;
+    xz = angularSepDEG(Xra[k],Xdec[k],Zra[k],Zdec[k]);
+    yz = angularSepDEG(Yra[k],Ydec[k],Zra[k],Zdec[k]);
+    xy = angularSepDEG(Xra[k],Xdec[k],Yra[k],Ydec[k]);
+    s_x = angularSepDEG(SatRA[k],SatDEC[k],Xra[k],Xdec[k]);
+    s_y = angularSepDEG(SatRA[k],SatDEC[k],Xra[k],Xdec[k]);
+    s_z = angularSepDEG(SatRA[k],SatDEC[k],Xra[k],Xdec[k]);
+    std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")xz="<<xz<<"\tyz="<<yz<<"\txy="<<xy<<"\t\ts_x="<<s_x<<"\ts_y="<<s_y<<"\ts_z="<<s_z<<std::endl;
   }
 
   /// Number of entries in each array

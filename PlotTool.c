@@ -1,6 +1,6 @@
 void PlotTool(){}
 
-void MapsPlot(TString filename){
+void OrbitPlot(TString filename){
   // Tool to make some maps plots 
   
   // import library and classes
@@ -21,7 +21,7 @@ void MapsPlot(TString filename){
   gROOT->Reset(); 
   gStyle->SetOptStat(0); 
   gStyle->SetPalette(1);
-  gStyle->SetCanvasColor(33);
+  /*gStyle->SetCanvasColor(33);*/
   gStyle->SetFrameFillColor(18);
   cout << "Opening ROOT file: " << filename <<endl; 
 
@@ -34,139 +34,77 @@ void MapsPlot(TString filename){
   f->ls();
 
    
-  TTree *mytree = (TTree *)f->Get("MapTree"); 
-  DmpMapOrbit* dmpMapOrbit = new DmpMapOrbit();
-  TBranch *b_dmpMapOrbit = mytree->GetBranch("DmpMapOrbit");
+  TTree *mytree = (TTree *)f->Get("OrbitTree"); 
+  DmpEvtOrbit* dmpMapOrbit = new DmpEvtOrbit();
+  TBranch *b_dmpMapOrbit = mytree->GetBranch("DmpEvtOrbit");
   b_dmpMapOrbit->SetAddress(&dmpMapOrbit);
 
-
   mytree->GetEntry(1);
-  Int_t iLatSteps = dmpMapOrbit->LatSteps;
-  Int_t iLonSteps = dmpMapOrbit->LonSteps;
+  /*Int_t iLatSteps = dmpMapOrbit->LatSteps;*/
+  /*Int_t iLonSteps = dmpMapOrbit->LonSteps;*/
   
-  //cout << "iLatSteps " << iLatSteps <<endl; 
-  //cout << "iLonSteps " << iLonSteps <<endl; 
+  //cout << "iLatSteps " << iLatSteps <<endl;
+  //cout << "iLonSteps " << iLonSteps <<endl;
 
-  TH2D *h_BAbs_Map = new TH2D("h_BAbs_Map", "Map of Magnetic field in Gauss", iLonSteps,0., +360.,iLatSteps, -90., 90. ); 
-  TH2D *h_VRC_Map = new TH2D("h_VRC_Map", "Map of Vertical Rigidity Cutoff", iLonSteps,0., +360.,iLatSteps, -90., 90. );
-  
-  
+  TH2D *h_BAbs_Hei = new TH2D("h_Hei_Map", "Map of heigh in m;Lon;Lat", 3600,0., 360.,1800, -90., 90.); 
+  TH2D *h_BAbs_Map = new TH2D("h_BAbs_Map", "Map of Magnetic field in Gauss;Lon;Lat", 3600,0., 360.,1800, -90., 90.); 
+  TH3D *h_BAbs_Map2 = new TH3D("h_BAbs_Map2", "Map of Magnetic field in Gauss;Lon;Lat;High", 360,0., 360.,180, -90., 90.,10000,450000,550000); 
+  TH2D *h_VRC_Map = new TH2D("h_VRC_Map", "Map of Vertical Rigidity Cutoff;Lon;Lat", 3600,0., 360.,1800, -90., 90.);
 
+  TH2D *h_scz_dir = new TH2D("h_scz_dir", "Z Axis;RA;Dec", 360,0., +360.,90, -90., 90. );
+  TH2D *h_scy_dir = new TH2D("h_scy_dir", "Y Axis;RA;Dec", 360,0., +360.,90, -90., 90. );
+  TH2D *h_scx_dir = new TH2D("h_scx_dir", "X Axis;RA;Dec", 360,0., +360.,90, -90., 90. );
+  TH2D *h_zenith_dir = new TH2D("h_zenith_dir", "X Axis;RA;Dec", 360,0., +360.,90, -90., 90. );
+  TH2D *h_sun_dir = new TH2D("h_sun_sir", "Sun;RA;Dec", 360,0., +360.,90, -90., 90. );
 
   Int_t nentries = (Int_t)mytree->GetEntries();
+  double log=0;
   for (Int_t i=0; i<nentries; i++) {
     mytree->GetEntry(i);
     //cout << "lat_geo: " << lat_geo << " lon_geo "<<lon_geo << endl;
-    h_BAbs_Map->Fill(dmpMapOrbit->lon_geo, dmpMapOrbit->lat_geo, dmpMapOrbit->bAbs);
-    h_VRC_Map->Fill(dmpMapOrbit->lon_geo, dmpMapOrbit->lat_geo,dmpMapOrbit->verticalRigidityCutoff );
+    log = dmpMapOrbit->lon_geo;
+    /*if(log > 180) log = log - 360;*/
+    h_BAbs_Map->Fill(log, dmpMapOrbit->lat_geo, dmpMapOrbit->bAbs);
+    h_BAbs_Map2->Fill(log, dmpMapOrbit->lat_geo,dmpMapOrbit->rad_geo, dmpMapOrbit->bAbs);
+    h_BAbs_Hei->Fill(log, dmpMapOrbit->lat_geo, dmpMapOrbit->rad_geo);
+    /*if(dmpMapOrbit->rad_geo > 530000) std::cout<<"i = "<<i<<std::endl;*/
+    h_VRC_Map->Fill(log, dmpMapOrbit->lat_geo,dmpMapOrbit->verticalRigidityCutoff );
+
+    h_scz_dir->Fill(dmpMapOrbit->ra_scz,dmpMapOrbit->dec_scz);
+    h_scy_dir->Fill(dmpMapOrbit->ra_scy,dmpMapOrbit->dec_scy);
+    h_scx_dir->Fill(dmpMapOrbit->ra_scx,dmpMapOrbit->dec_scx);
+    h_sun_dir->Fill(dmpMapOrbit->SunLon,dmpMapOrbit->SunLat);
+    h_zenith_dir->Fill(dmpMapOrbit->ra_zenith,dmpMapOrbit->dec_zenith);
   }
 
-
-  TCanvas *c1 = new TCanvas("c1", "c1", 600, 600);
-  c1->Divide(1,2);
-  c1->cd(1);
+  TCanvas *c1 = new TCanvas("BAbs", "BAbs");// 900, 600);
+  /*c1->Divide(1,2);*/
+  /*c1->(1);*/
   h_BAbs_Map->DrawCopy("COLZ");
-  c1->cd(2);
+  TCanvas *c2 = new TCanvas("VR", "VR", 900, 600);
+  /*c1->cd(2);*/
   h_VRC_Map->DrawCopy("COLZ");
+  TCanvas *c3 = new TCanvas("Hei", "Hei", 900, 600);
+  h_BAbs_Hei->DrawCopy("COLZ");
 
-  f->Close();
-
-}
-void OrbitPlot(TString filename){
-
-  // Tool to make some maps plots
-
-
-  // import library and classes
-  
-  TString myincludepath = new TString::TString();
-  myincludepath.Append("-I");
-  myincludepath.Append(gSystem->Getenv("DMPSWWORK"));
-  myincludepath.Append("/include/");
-  cout << "Include path " << myincludepath << endl;
-  gSystem->AddIncludePath(myincludepath.Data());
-  TString mylibpath = new TString::TString();
-  mylibpath.Append(gSystem->Getenv("DMPSWWORK"));
-  mylibpath.Append("/lib/libDmpMyEvt.so");
-  cout << "Lib path " << mylibpath << endl;  
-  gSystem->Load(mylibpath);
-
-  cout << "Opening ROOT file: " << filename <<endl;
-
-  gROOT->Reset();
-  gStyle->SetOptStat(0);
-  gStyle->SetPalette(1);
-  gStyle->SetCanvasColor(33);
-  gStyle->SetFrameFillColor(18);
-
-
-  TFile *f = TFile::Open(filename);
-  if (f->IsZombie()) {
-    cout << "Error opening file" << endl;
-    return -1;
-  }
- 
-  f->ls();
-
-  TTree *mytree = (TTree *)f->Get("OrbitTree"); 
-  DmpEvtOrbit* dmpEvtOrbit = new DmpEvtOrbit();
-  TBranch *b_dmpEvtOrbit = mytree->GetBranch("DmpEvtOrbit");
-  b_dmpEvtOrbit->SetAddress(&dmpEvtOrbit);
-
-  TH2D *h_scz_dir = new TH2D("h_scz_dir", "Z Axis", 360,0., +360.,90, -90., 90. );
-  TH2D *h_scy_dir = new TH2D("h_scy_dir", "Y Axis", 360,0., +360.,90, -90., 90. );
-  TH2D *h_scx_dir = new TH2D("h_scy_dir", "X Axis", 360,0., +360.,90, -90., 90. );
-  TH2D *h_zenith_dir = new TH2D("h_zenith_dir", "X Axis", 360,0., +360.,90, -90., 90. );
-  TH2D *h_sun_dir = new TH2D("h_sun_sir", "Sun", 360,0., +360.,90, -90., 90. );
-
-  TH2D *h_sat_pos = new TH2D("h_sat_pos", "Satellite position", 360,0., +360.,90, -90., 90. );
-  TH2D *h_sat_pos_B = new TH2D("h_sat_pos_B", "B(G) @ Satellite position", 360,0., +360.,90, -90., 90. );
-
-
- 
-
-  Int_t nentries = (Int_t)mytree->GetEntries();
-  for (Int_t i=0; i<nentries; i++) {
-    mytree->GetEntry(i);
-    h_scz_dir->Fill(dmpEvtOrbit->ra_scz,dmpEvtOrbit->dec_scz);
-    h_scy_dir->Fill(dmpEvtOrbit->ra_scy,dmpEvtOrbit->dec_scy);
-
-    h_scx_dir->Fill(dmpEvtOrbit->ra_scx,dmpEvtOrbit->dec_scx);
-   
-
-    h_sun_dir->Fill(dmpEvtOrbit->SunLon,dmpEvtOrbit->SunLat);
-    h_zenith_dir->Fill(dmpEvtOrbit->ra_zenith,dmpEvtOrbit->dec_zenith);
-
-    h_sat_pos->Fill(dmpEvtOrbit->lon_geo,dmpEvtOrbit->lat_geo);
-    h_sat_pos_B->Fill(dmpEvtOrbit->lon_geo,dmpEvtOrbit->lat_geo,dmpEvtOrbit->bAbs);
-
-    //cout << rad_geo/1000. << endl;
-
-  }
-
-
-  TCanvas *c1 = new TCanvas("c1", "c1", 600, 600);
-  c1->Divide(1,1);
-  c1->cd(1);
+  TCanvas *c0 = new TCanvas("dirction", "dir", 900, 600);
   h_scz_dir->DrawCopy();
-
   h_scy_dir->SetMarkerColor(kRed);
   h_scy_dir->DrawCopy("SAME");
 
-  h_scx_dir->SetMarkerColor(kBlue);    
+  h_scx_dir->SetMarkerColor(kBlue);
   h_scx_dir->DrawCopy("SAME");
 
-  h_sun_dir->SetMarkerColor(kYellow);  
+  h_sun_dir->SetMarkerColor(kGreen);
   h_sun_dir->DrawCopy("SAME");
 
-  TCanvas *c2 = new TCanvas("c2", "c2", 600, 600);
-  c2->Divide(1,2);
-  c2->cd(1);
-  h_sat_pos->DrawCopy("");
-  c2->cd(2);
-  h_sat_pos_B->DrawCopy("COLZ");
-  
-  
+  TCanvas *v0 = new TCanvas("3D map magnetic");
+  h_BAbs_Map2->DrawCopy();
+
+  /*h_zenith_dir->SetMarkerColor(kGreen);*/
+  /*h_zenith_dir->DrawCopy("SAME");*/
+
   f->Close();
 
 }
+

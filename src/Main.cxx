@@ -210,6 +210,7 @@ int main(int argc, char** argv)
   // Double_t SunLat, SunLon;
   
 
+  double last_s0=0,last_s1=0;
   //fill the tree
   for (Int_t i=0; i<Oat->ent; i++) {
 
@@ -219,9 +220,8 @@ int main(int argc, char** argv)
     
     dmpEvtOrbit->mjd = Oat->mjd[i];
     dmpEvtOrbit->met = do_mjd2met(Oat->mjd[i]); // NOTE: here is FERMI lauch time 2001-01-01
+//std::cout<<"DEBUG: "<<__FILE__<<"("<<__LINE__<<")\t"<<dmpEvtOrbit->start<<"\t"<<dmpEvtOrbit->stop<<"\t"<<(int)dmpEvtOrbit->met<<std::endl;
     //std::cout << " MJD " << Oat->mjd[i] << " "  << dmpEvtOrbit->mjd << std::endl;
-    //std::cout << " MJD " << Oat->mjd[i] << std::endl;
-
 
     dmpEvtOrbit->lat_geo = Oat->Lat[i];
     dmpEvtOrbit->lon_geo = Oat->Lon[i];
@@ -308,6 +308,7 @@ int main(int argc, char** argv)
 
     dmpEvtOrbit->SunLon = pSun.lon*RAD2DEG;
     dmpEvtOrbit->SunLat = pSun.lat *RAD2DEG;
+    //Oat->printOffset(i);
 
     OrbitTree->Fill();
   }
