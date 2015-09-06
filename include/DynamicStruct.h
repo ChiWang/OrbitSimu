@@ -86,6 +86,8 @@ struct EphemData {
   std::vector <double> VelRA;
   /// array for the velocity compenent in DEC in EC system
   std::vector <double> VelDEC;
+  ///NOTE: better add Sun positon at here....
+  //std::vector<double> 
   /// Ephemeredis Period, not used with the available Ephemeredis
   double Period, 
   /// SemiMajorAxis, not used with the available Ephemeredis
@@ -93,11 +95,6 @@ struct EphemData {
   /// Number of entries in each array
   int ent;
 };
-
-
-
-
-
 
 
 

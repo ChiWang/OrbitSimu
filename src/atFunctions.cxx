@@ -386,7 +386,6 @@ int atRotVect(
 }
 
 /* calculates ra and dec of sun for mjd, returns as a 3-vect */
-
 int atSun(double mjd, AtVect pos)
 {
   /* taken from Christina William's version of Frank Marshall's version

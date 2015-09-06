@@ -214,6 +214,7 @@ int main(int argc, char** argv)
   //fill the tree
   for (Int_t i=0; i<Oat->ent; i++) {
 
+    dmpEvtOrbit->ev = i;
     dmpEvtOrbit->stop = (UInt_t)((Oat->mjd[i]-MJDREF)*secInDay+0.5);
     dmpEvtOrbit->start = dmpEvtOrbit->stop - (UInt_t)(initf.Resolution*secInDay);
     
@@ -221,7 +222,6 @@ int main(int argc, char** argv)
     dmpEvtOrbit->met = do_mjd2met(Oat->mjd[i]); // NOTE: here is FERMI lauch time 2001-01-01
     //std::cout << " MJD " << Oat->mjd[i] << " "  << dmpEvtOrbit->mjd << std::endl;
     //std::cout << " MJD " << Oat->mjd[i] << std::endl;
-    dmpEvtOrbit->ev = i;
 
 
     dmpEvtOrbit->lat_geo = Oat->Lat[i];
@@ -231,22 +231,28 @@ int main(int argc, char** argv)
     //pSat.lat = dmpEvtOrbit->lat_geo;
     //pSat.lon = dmpEvtOrbit->lon_geo;
     //pSat.r = dmpEvtOrbit->rad_geo;
- 
 
     dmpEvtOrbit->pos[0]=Oat->X[i]*1000.0;
     dmpEvtOrbit->pos[1]=Oat->Y[i]*1000.0;
     dmpEvtOrbit->pos[2]=Oat->Z[i]*1000.0;
 
-
-
     dmpEvtOrbit->ra_zenith = Oat->SatRA[i];
     dmpEvtOrbit->dec_zenith = Oat->SatDEC[i];
 
+    dmpEvtOrbit->ra_scz = Oat->Zra[i];//pSatZ.lon*RAD2DEG;
+    dmpEvtOrbit->dec_scz = Oat->Zdec[i];//pSatZ.lat*RAD2DEG;
+
+    dmpEvtOrbit->ra_scx = Oat->Xra[i];//pSatX.lon*RAD2DEG;
+    dmpEvtOrbit->dec_scx = Oat->Xdec[i];//pSatX.lat*RAD2DEG;
+
+    dmpEvtOrbit->ra_scy = Oat->Yra[i];//pSatY.lon*RAD2DEG;
+    dmpEvtOrbit->dec_scy = Oat->Ydec[i];//pSatY.lat*RAD2DEG;
+
+    {
     pSatZenith.lon = Oat->SatRA[i]*DEG2RAD;
     pSatZenith.lat =  Oat->SatDEC[i]*DEG2RAD;
     pSatZenith.r = 1; // fake only for direction purposes
     atPolToVect(&pSatZenith,vSatZenith);
-   
 
     pSatZ.lon = Oat->Zra[i]*DEG2RAD;
     pSatZ.lat =  Oat->Zdec[i]*DEG2RAD;
@@ -262,25 +268,13 @@ int main(int argc, char** argv)
     pSatY.lat =  Oat->Ydec[i]*DEG2RAD;
     pSatY.r = 1; // fake only for direction purposes
     atPolToVect(&pSatY,vSatY);
+  }
 
-
-
-    dmpEvtOrbit->ra_scz = pSatZ.lon*RAD2DEG;
-    dmpEvtOrbit->dec_scz = pSatZ.lat*RAD2DEG;
-    
-    dmpEvtOrbit->ra_scx = pSatX.lon*RAD2DEG;
-    dmpEvtOrbit->dec_scx = pSatX.lat*RAD2DEG;
-              
-    dmpEvtOrbit->ra_scy = pSatY.lon*RAD2DEG;
-    dmpEvtOrbit->dec_scy = pSatY.lat*RAD2DEG;
-
-
-
-        
     // Geomagnetic  section
+//-------------------------------------------------------------------
     // the year is fixed at 2015 since is the last valid yesr for IGRF at the moment
     IGRField::Model().compute(dmpEvtOrbit->lat_geo, dmpEvtOrbit->lon_geo, dmpEvtOrbit->rad_geo, 2015, IGRFDataPath); // NOTE: important
-   
+
     dmpEvtOrbit->dipoleMoment = IGRField::Model().dipoleMoment(); // Get dipole moment    
     dmpEvtOrbit->L = IGRField::Model().L(); // Get McIlwain L
     //B = IGRField::Model().B(); // Get B/B0 bAbs/bEquator
@@ -304,11 +298,9 @@ int main(int argc, char** argv)
     dmpEvtOrbit->verticalRigidityCutoff  = IGRField::Model().verticalRigidityCutoff();// Get vertical rigidity cutoff
     dmpEvtOrbit->invariantLatitude = IGRField::Model().invariantLatitude();// Get invariant latitude
 
-
-    
     // Solar position section
     // evaluate sun position in cartesina
-    atSun(Oat->mjd[i],vSun);   
+    atSun(Oat->mjd[i],vSun);
     //    std::cout << "Sun x " << vSun[0] << "Sun y " << vSun[1] << " Sun z " << vSun[2] <<std::endl;
     // transform in polar
     atVectToPol( vSun, &pSun);
@@ -316,7 +308,6 @@ int main(int argc, char** argv)
 
     dmpEvtOrbit->SunLon = pSun.lon*RAD2DEG;
     dmpEvtOrbit->SunLat = pSun.lat *RAD2DEG;
-
 
     OrbitTree->Fill();
   }
@@ -328,8 +319,6 @@ int main(int argc, char** argv)
     TTree *MapTree = new TTree("MapTree","Tree with parameters to build geomagnetic maps");
     MapTree->Branch("DmpMapOrbit",  "DmpMapOrbit",     &dmpMapOrbit  );
 
-   
-      
     for (Int_t lat=0; lat<=latSteps; lat++) {
       for (Int_t lon=0; lon<=lonSteps; lon++) {
 	
@@ -362,7 +351,6 @@ int main(int argc, char** argv)
 	dmpMapOrbit->verticalRigidityCutoff  = IGRField::Model().verticalRigidityCutoff();// Get vertical rigidity cutoff
 	dmpMapOrbit->invariantLatitude = IGRField::Model().invariantLatitude();// Get invariant latitude
 	MapTree->Fill();
-	
       }
     }
     MapTree->Write();
@@ -372,7 +360,6 @@ int main(int argc, char** argv)
   fout->Close();
   std::cout << "Closing Root File " << RootFileName << std::endl; 
  
-
   return 0;
 
 }

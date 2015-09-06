@@ -23,7 +23,7 @@ IGRField& IGRField::Model() {
       model = new IGRField();
    }
    return *model; 
-}   
+}
 
 IGRField::IGRField() {
     IGRFf2c::initize_(); 
@@ -69,7 +69,7 @@ void IGRField::setYear(const float year, char *DataPath){
    IGRFf2c::integer icode;
    IGRFf2c::logical value;
    float stps=0.05;
-   float bdel=0.001; 
+   float bdel=0.001; //NOTE: why those 2 values??
 
    if(year>0) Model().setYear(year, DataPath);
    m_latitude=latitude;
@@ -82,11 +82,11 @@ void IGRField::setYear(const float year, char *DataPath){
    IGRFf2c::findb0_(&stps, &bdel, &value, &m_bEquator, &rr0);
    if(value==0) m_bEquator=m_dipoleMoment/(m_L*m_L*m_L);
    
-   m_B=m_bAbs/m_bEquator;   
+   m_B=m_bAbs/m_bEquator;
    
 // conversion from dipole moment in IGRF G*R_earth^3 to rigidity in GV:
 //                                                R_earth   km->cm  statvolt -> gigavolt
-   float rigidity_const= 0.25 * m_dipoleMoment * earth_radius *  1e5 *  300. / 1e9 ;
+   float rigidity_const= 0.25 * m_dipoleMoment * earth_radius *  1e5 *  300. / 1e9 ;        //NOTE: numbers?
    
 // the invariant latitude and the rigidity cutoff
 // as described in Smart and Shea, Adv. Space Res. 36 (2005) p.2012
@@ -106,7 +106,6 @@ void IGRField::setYear(const float year, char *DataPath){
    m_lambda= (rl<=1) ? acos(sqrt(rl)) : 0.;
 
    return icode;
-
 }
 
 const IGRF_data & IGRField::igrf_data(const std::string & filename) {

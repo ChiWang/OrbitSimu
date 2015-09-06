@@ -80,7 +80,7 @@ class IGRField {
       static IGRField& Model();// { return m_model; };   
 
 // Compute field parameters for a given latitude, longitude and altitude 
-      int compute(const float latitude,const float longitude,const float altitude,const float year=-1, char *DataPath="/lustrehome/gargano/DAMPE/DAMPESW/DmpSoftware/trunk/OrbitSimulation/data/");
+      int compute(const float latitude,const float longitude,const float altitude,const float year, char *DataPath);
 
 // Get dipole moment
       float dipoleMoment() const { return m_dipoleMoment; };

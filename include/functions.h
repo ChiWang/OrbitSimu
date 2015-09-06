@@ -49,10 +49,10 @@ extern "C" {
   /// GLAST Sun Limit in degrees
 #define SUN_LIMIT 10.0   
 
- /// Starting time in MJD format for DAMPE/GLAST clocks 01/01/2001 00:00:00
+ /// Starting time in MJD format for GLAST clocks 01/01/2001 00:00:00
 #define MJDREF 51910.00
-
-
+ /// Starting time in MJD format for DAMPE clocks 01/01/2015 00:00:00
+//#define MJDREF 57023.00
 
 /* defined constants */
 #ifndef _xmnpda
@@ -86,10 +86,6 @@ extern "C" {
   /// Earth Geopotential constant
 #define CK4 (-3.0 * -1.65597E-6 / 8.0)
 #endif
-
-
-
-
 
 
 
